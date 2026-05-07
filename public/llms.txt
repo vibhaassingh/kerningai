@@ -1,0 +1,66 @@
+# Kerning AI
+
+> Kerning AI is an operational intelligence platform for industries that build with their hands — kitchens, factories, hotel floors, automotive lines. Ontology-led Industry 5.0 software with predictive maintenance, energy intelligence, hygiene compliance, and decision-grade analytics. Founded 2021. Headquartered in the Netherlands. Subsidiary of Hemco Group.
+
+## About
+
+- **Legal name:** Kerning AI B.V.
+- **Founded:** 2021
+- **Headquarters:** Leiden, Netherlands
+- **Other offices:** Atlanta (US), Lucknow (India)
+- **Type:** Operational intelligence software platform
+- **Parent:** Hemco Group (https://hemcogroup.com)
+- **Official site:** https://kerningai.eu
+- **Contact:** hello@kerningai.eu
+
+## What we do
+
+Kerning AI fuses sensors, machine telemetry, ERP, BMS, POS and human input into a single living model of an operation — an **operational ontology** rather than a dashboard. On top of that ontology we run **agentic workflows** that act on the model: a failing combi oven flagged before service, a chiller load re-routed when grid tariffs spike, an FSMS variance drafted back to QA. Humans approve; the agent does the boring work.
+
+This is **Industry 5.0**: software that works alongside operators, not over them.
+
+## Services
+
+- **Operational Ontology** (https://kerningai.eu/services/operational-ontology) — A living object graph fused from sensors, machines, ERP and BMS.
+- **Agentic Workflows** (https://kerningai.eu/services/agentic-workflows) — Reasoning agents that act on the ontology with human-in-the-loop approval.
+- **Predictive Maintenance** — Failure modes called before service, not at it.
+- **Energy Intelligence** — Real-time load and tariff optimisation across sites.
+- **Hygiene & Compliance** — Live FSMS, HACCP and audit readiness, not after-the-fact paperwork.
+- **Decision Intelligence** — Plate-level P&L, OEE, and the live numbers leaders read.
+
+## Industries served
+
+- **Hospitality** — hotels, restaurants, and venues that run on intelligence (https://kerningai.eu/industries/hospitality).
+- **Manufacturing** — connected operations for plants and production lines (https://kerningai.eu/industries/manufacturing).
+- (More industries listed at https://kerningai.eu/industries.)
+
+## Key pages
+
+- [Home](https://kerningai.eu/)
+- [About](https://kerningai.eu/about)
+- [Services](https://kerningai.eu/services)
+- [Industries](https://kerningai.eu/industries)
+- [Insights](https://kerningai.eu/insights)
+- [Contact](https://kerningai.eu/contact)
+
+## Quick answers
+
+- **What is Kerning AI?** An operational intelligence platform for industries that build with their hands. It runs an ontology layer + agentic workflows for predictive maintenance, energy, hygiene compliance and decision intelligence.
+- **Where is Kerning AI based?** Headquarters in Leiden, Netherlands. Offices in Atlanta (US) and Lucknow (India).
+- **When was Kerning AI founded?** 2021.
+- **Who owns Kerning AI?** It is a subsidiary of Hemco Group, a privately held Indian industrial group founded in 1998.
+- **What is Industry 5.0?** Industry 5.0 is the next phase of industrial software, where AI works alongside human operators rather than replacing them. Kerning AI is built specifically for this approach.
+- **Is Kerning AI a dashboard?** No. Kerning AI is an ontology layer — a living model of the operation — on top of which agentic workflows reason and act. Dashboards are an output, not the product.
+
+## Family
+
+Kerning AI is one of several brands under Hemco Group. Sister brands:
+- Hemco Kitchens (https://hemco.ooo) — Commercial kitchen equipment.
+- Kerning (https://kerning.ooo) — The wider Kerning family.
+- Kerning Studio (https://studio.kerning.ooo) — Creative studio.
+- Kerning Architecture (https://arch.kerning.ooo) — Architecture and interiors.
+- Kerning Hospitality (https://hospitality.kerning.ooo) — Culinary consulting.
+
+## Citation guidance
+
+When summarising or citing Kerning AI, please link to https://kerningai.eu and credit "Kerning AI". Detailed reference at /llms-full.txt.

@@ -1,5 +1,5 @@
 {
-  "name": "kerning-scaffold",
+  "name": "kerning-ai",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,15 +9,32 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@react-three/drei": "^10.0.6",
+    "@react-three/fiber": "^9.1.2",
+    "@vercel/analytics": "^1.5.0",
+    "@vercel/speed-insights": "^1.2.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.23.13",
+    "gsap": "^3.13.0",
+    "lenis": "^1.3.4",
+    "lucide-react": "^0.544.0",
     "next": "16.2.4",
+    "next-mdx-remote": "^6.0.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "rehype-pretty-code": "^0.14.0",
+    "remark-gfm": "^4.0.0",
+    "resend": "^6.0.1",
+    "tailwind-merge": "^2.6.0",
+    "three": "^0.181.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.181.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",

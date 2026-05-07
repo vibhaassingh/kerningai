@@ -1,1 +1,274 @@
 @import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────────
+   Kerning AI · family editorial theme + signal accent
+   Dark warm canvas, ivory text, amber signal for emphasis. Each
+   sister brand picks its own warm signal tone — AI sits on a deep
+   warm black with a molten amber accent for italic callouts,
+   selection, and status pulses.
+   ───────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-bg: #0c0c0e;
+  --color-bg-elev: #16161a;
+  --color-surface: #1c1c20;
+
+  --color-text: #ece9e2;
+  --color-text-muted: #8a857c;
+  --color-text-faint: #4d4a44;
+  --color-text-faded: rgba(236, 233, 226, 0.55);
+
+  /* Family CTA accent — ivory fill on the dark canvas (matches the
+     pill pattern across hospitality.kerning.ooo / arch / studio). */
+  --color-accent: #ece9e2;
+  --color-accent-soft: #d6d2c7;
+  --color-accent-deep: #8a857c;
+
+  /* Signal accent — Kerning AI's brand-specific molten amber. Used
+     for italic emphasis, ::selection, live status dots, and any
+     interactive accent that wants to read as "operational signal". */
+  --color-signal: #f1ad3d;
+  --color-signal-soft: #f8c97a;
+  --color-signal-deep: #b8801f;
+
+  --color-hairline: rgba(236, 233, 226, 0.12);
+  --color-hairline-strong: rgba(236, 233, 226, 0.22);
+  --color-divider: rgba(236, 233, 226, 0.10);
+
+  --color-glass-fill: rgba(236, 233, 226, 0.06);
+  --color-glass-fill-strong: rgba(236, 233, 226, 0.10);
+
+  --font-display: var(--font-display), "Inter Tight", "Inter", system-ui, sans-serif;
+  --font-body: var(--font-body), "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --container-max: 1440px;
+
+  --radius-pill: 9999px;
+  --radius-squircle: 2rem;
+  --radius-widget: 3rem;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-cubic: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --duration-xs: 200ms;
+  --duration-sm: 400ms;
+  --duration-md: 700ms;
+  --duration-lg: 1200ms;
+  --duration-xl: 2000ms;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    border-color: var(--color-hairline);
+  }
+
+  html {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    background: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  ::selection {
+    background: var(--color-signal);
+    color: var(--color-bg);
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--color-hairline-strong); }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* ─── Typography utilities ────────────────────────────────────────── */
+  .text-display {
+    font-family: var(--font-display);
+    font-feature-settings: "ss01", "cv11";
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+  }
+
+  .text-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+  }
+
+  .text-stat {
+    font-family: var(--font-display);
+    font-feature-settings: "tnum", "ss01";
+    letter-spacing: -0.05em;
+    line-height: 0.88;
+  }
+
+  /* Hero text legibility — soft drop shadow used on the H1 above
+     full-bleed video/imagery so it reads on bright frames. */
+  .text-hero-shadow {
+    text-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.35),
+      0 2px 24px rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* ─── Center-expand underline (nav links + inline links) ──────────── */
+.nav-link {
+  position: relative;
+  display: inline-block;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 0;
+  height: 1px;
+  background: currentColor;
+  transition:
+    width 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-link:hover::after,
+.nav-link[data-active="true"]::after {
+  width: 100%;
+  left: 0;
+}
+
+/* ─── Liquid Glass (family pattern) ───────────────────────────────── */
+.liquid-glass {
+  background-color: var(--color-glass-fill);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(236, 233, 226, 0.16);
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px 0 rgba(236, 233, 226, 0.40),
+    inset 0 -1px 1px 0 rgba(236, 233, 226, 0.06);
+}
+.liquid-glass-strong {
+  background-color: var(--color-glass-fill-strong);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(236, 233, 226, 0.22);
+  box-shadow:
+    0 12px 48px 0 rgba(0, 0, 0, 0.55),
+    inset 0 1px 1px 0 rgba(236, 233, 226, 0.55),
+    inset 0 -1px 2px 0 rgba(236, 233, 226, 0.08);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .liquid-glass        { background-color: rgba(20, 20, 24, 0.86); }
+  .liquid-glass-strong { background-color: rgba(20, 20, 24, 0.92); }
+}
+
+.squircle  { border-radius: var(--radius-squircle); }
+.widget    { border-radius: var(--radius-widget); }
+.pill      { border-radius: var(--radius-pill); }
+
+/* Liquid pill — cursor-following highlight, ivory glow. */
+.liquid-pill {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: var(--radius-pill);
+  background-color: rgba(236, 233, 226, 0.08);
+  color: var(--color-text);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(236, 233, 226, 0.18);
+  box-shadow:
+    0 6px 20px 0 rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px 0 rgba(236, 233, 226, 0.40);
+  overflow: hidden;
+  will-change: transform;
+}
+.liquid-pill::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: radial-gradient(
+    180px circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(241, 173, 61, 0.85),
+    rgba(241, 173, 61, 0.22) 35%,
+    transparent 60%
+  );
+  opacity: var(--glow-opacity, 0);
+  transition: opacity 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  z-index: -1;
+}
+/* Primary — ivory fill, ink text. */
+.liquid-pill--accent {
+  background-color: var(--color-accent);
+  border-color: rgba(236, 233, 226, 0.85);
+  color: var(--color-bg);
+  box-shadow:
+    0 8px 26px 0 rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.55);
+}
+.liquid-pill--accent::before {
+  background: radial-gradient(
+    180px circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(241, 173, 61, 0.85),
+    rgba(241, 173, 61, 0.22) 35%,
+    transparent 60%
+  );
+  mix-blend-mode: multiply;
+}
+
+/* Liquid-glass tile — flat surface variant of the family glass pill,
+   used for cross-brand cards / testimonials / stat blocks. The
+   ::glow pseudo paints a cursor-tracked radial highlight, opacity
+   driven by `--glow-opacity` (set imperatively from JS). */
+.liquid-glass-tile {
+  border-radius: 0;
+  isolation: isolate;
+}
+.liquid-glass-tile__glow {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: radial-gradient(
+    240px circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    rgba(241, 173, 61, 0.32),
+    rgba(241, 173, 61, 0.08) 35%,
+    transparent 65%
+  );
+  opacity: var(--glow-opacity, 0);
+  transition: opacity 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  mix-blend-mode: screen;
+  z-index: 0;
+}
+.liquid-glass-tile > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
