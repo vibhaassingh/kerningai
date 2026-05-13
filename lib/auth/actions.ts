@@ -118,7 +118,33 @@ export async function signInWithPassword(
     userAgent: await userAgent(),
   });
 
-  const target = safeRedirectTarget(parsed.data.returnTo);
+  // If the caller passed a returnTo, honor it (validated against the
+  // allowlist). Otherwise route the user to their primary shell based
+  // on org type. Internal staff → /admin, client users → /portal,
+  // anyone with no active membership → /accept-invite to surface that.
+  let target = parsed.data.returnTo
+    ? safeRedirectTarget(parsed.data.returnTo)
+    : null;
+
+  if (!target || target === "/") {
+    const { data: memberships } = await supabase
+      .from("organization_memberships")
+      .select("organization_id, status, organizations:organizations!inner(type)")
+      .eq("user_id", data.user.id)
+      .eq("status", "active");
+
+    type MembershipRow = { organizations: { type: "internal" | "client" } };
+    const rows = (memberships ?? []) as unknown as MembershipRow[];
+    const hasInternal = rows.some((m) => m.organizations.type === "internal");
+    const hasClient = rows.some((m) => m.organizations.type === "client");
+
+    target = hasInternal
+      ? "/admin"
+      : hasClient
+        ? "/portal"
+        : "/accept-invite";
+  }
+
   redirect(target);
 }
 

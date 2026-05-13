@@ -184,7 +184,7 @@ After production migration, create the first super-admin by:
    INSERT INTO public.organization_memberships
      (user_id, organization_id, role_slug, status, accepted_at)
    SELECT u.id,
-          '00000000-0000-0000-0000-00000000ke00',
+          '00000000-0000-0000-0000-000000000001',
           'super_admin',
           'active',
           now()

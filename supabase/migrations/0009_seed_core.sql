@@ -16,7 +16,7 @@
 -- that super_admin memberships are portable.
 INSERT INTO public.organizations (id, name, slug, type, region, billing_email, status, metadata)
 VALUES (
-  '00000000-0000-0000-0000-00000000ke00'::uuid,
+  '00000000-0000-0000-0000-000000000001'::uuid,
   'Kerning AI',
   'kerning-ai',
   'internal',

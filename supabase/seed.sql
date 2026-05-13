@@ -19,16 +19,16 @@
 -- 3 client organizations
 -- ---------------------------------------------------------------------------
 INSERT INTO public.organizations (id, name, slug, type, region, billing_email, metadata) VALUES
-  ('11111111-1111-1111-1111-1111meri0001'::uuid, 'Meridian Hospitality Group',     'meridian',   'client', 'eu-west-1',     'finance@meridian.example.com',  '{"industry": "hospitality"}'::jsonb),
-  ('11111111-1111-1111-1111-1111nort0002'::uuid, 'Northline Components Plant',     'northline',  'client', 'eu-central-1',  'finance@northline.example.com', '{"industry": "manufacturing"}'::jsonb),
-  ('11111111-1111-1111-1111-1111civi0003'::uuid, 'CivicCare Institutional Dining', 'civiccare',  'client', 'ap-south-1',    'finance@civiccare.example.com', '{"industry": "institutional"}'::jsonb)
+  ('11111111-1111-1111-1111-111111110001'::uuid, 'Meridian Hospitality Group',     'meridian',   'client', 'eu-west-1',     'finance@meridian.example.com',  '{"industry": "hospitality"}'::jsonb),
+  ('11111111-1111-1111-1111-111111110002'::uuid, 'Northline Components Plant',     'northline',  'client', 'eu-central-1',  'finance@northline.example.com', '{"industry": "manufacturing"}'::jsonb),
+  ('11111111-1111-1111-1111-111111110003'::uuid, 'CivicCare Institutional Dining', 'civiccare',  'client', 'ap-south-1',    'finance@civiccare.example.com', '{"industry": "institutional"}'::jsonb)
 ON CONFLICT (id) DO NOTHING;
 
 -- client_settings
 INSERT INTO public.client_settings (organization_id, industry, deployment_type, modules_enabled, health_score, mrr_cents, renewal_date) VALUES
-  ('11111111-1111-1111-1111-1111meri0001'::uuid, 'hospitality',    'cloud',           ARRAY['predictive_maintenance','energy','compliance','decision_intelligence'],         88, 1200000, '2027-04-01'),
-  ('11111111-1111-1111-1111-1111nort0002'::uuid, 'manufacturing',  'sovereign_cloud', ARRAY['operational_ontology','predictive_maintenance','energy','decision_intelligence'], 76, 2800000, '2026-11-15'),
-  ('11111111-1111-1111-1111-1111civi0003'::uuid, 'institutional',  'on_prem',         ARRAY['compliance','energy','agentic_workflows','operational_ontology'],               82, 1800000, '2027-02-20')
+  ('11111111-1111-1111-1111-111111110001'::uuid, 'hospitality',    'cloud',           ARRAY['predictive_maintenance','energy','compliance','decision_intelligence'],         88, 1200000, '2027-04-01'),
+  ('11111111-1111-1111-1111-111111110002'::uuid, 'manufacturing',  'sovereign_cloud', ARRAY['operational_ontology','predictive_maintenance','energy','decision_intelligence'], 76, 2800000, '2026-11-15'),
+  ('11111111-1111-1111-1111-111111110003'::uuid, 'institutional',  'on_prem',         ARRAY['compliance','energy','agentic_workflows','operational_ontology'],               82, 1800000, '2027-02-20')
 ON CONFLICT (organization_id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -36,17 +36,17 @@ ON CONFLICT (organization_id) DO NOTHING;
 -- ---------------------------------------------------------------------------
 INSERT INTO public.sites (id, organization_id, name, slug, region, timezone, deployment_type, address, status) VALUES
   -- Meridian
-  ('22222222-2222-2222-2222-2222hotk0101'::uuid, '11111111-1111-1111-1111-1111meri0001'::uuid, 'Hotel Kitchen 01',     'hotel-kitchen-01',     'eu-west-1',     'Europe/Amsterdam', 'cloud', '{"city":"Amsterdam","country":"NL"}'::jsonb, 'active'),
-  ('22222222-2222-2222-2222-2222comy0102'::uuid, '11111111-1111-1111-1111-1111meri0001'::uuid, 'Central Commissary',   'central-commissary',   'eu-west-1',     'Europe/Amsterdam', 'cloud', '{"city":"Amsterdam","country":"NL"}'::jsonb, 'active'),
-  ('22222222-2222-2222-2222-2222roft0103'::uuid, '11111111-1111-1111-1111-1111meri0001'::uuid, 'Rooftop Venue',        'rooftop-venue',        'eu-west-1',     'Europe/Amsterdam', 'cloud', '{"city":"Amsterdam","country":"NL"}'::jsonb, 'active'),
+  ('22222222-2222-2222-2222-222222220101'::uuid, '11111111-1111-1111-1111-111111110001'::uuid, 'Hotel Kitchen 01',     'hotel-kitchen-01',     'eu-west-1',     'Europe/Amsterdam', 'cloud', '{"city":"Amsterdam","country":"NL"}'::jsonb, 'active'),
+  ('22222222-2222-2222-2222-222222220102'::uuid, '11111111-1111-1111-1111-111111110001'::uuid, 'Central Commissary',   'central-commissary',   'eu-west-1',     'Europe/Amsterdam', 'cloud', '{"city":"Amsterdam","country":"NL"}'::jsonb, 'active'),
+  ('22222222-2222-2222-2222-222222220103'::uuid, '11111111-1111-1111-1111-111111110001'::uuid, 'Rooftop Venue',        'rooftop-venue',        'eu-west-1',     'Europe/Amsterdam', 'cloud', '{"city":"Amsterdam","country":"NL"}'::jsonb, 'active'),
   -- Northline
-  ('22222222-2222-2222-2222-2222plnt0201'::uuid, '11111111-1111-1111-1111-1111nort0002'::uuid, 'Plant 04',             'plant-04',             'eu-central-1',  'Europe/Berlin',    'sovereign_cloud', '{"city":"Stuttgart","country":"DE"}'::jsonb, 'active'),
-  ('22222222-2222-2222-2222-2222lin20202'::uuid, '11111111-1111-1111-1111-1111nort0002'::uuid, 'Line 2',               'line-2',               'eu-central-1',  'Europe/Berlin',    'sovereign_cloud', '{"city":"Stuttgart","country":"DE"}'::jsonb, 'active'),
-  ('22222222-2222-2222-2222-2222pkg00203'::uuid, '11111111-1111-1111-1111-1111nort0002'::uuid, 'Packaging Cell',       'packaging-cell',       'eu-central-1',  'Europe/Berlin',    'sovereign_cloud', '{"city":"Stuttgart","country":"DE"}'::jsonb, 'active'),
+  ('22222222-2222-2222-2222-222222220201'::uuid, '11111111-1111-1111-1111-111111110002'::uuid, 'Plant 04',             'plant-04',             'eu-central-1',  'Europe/Berlin',    'sovereign_cloud', '{"city":"Stuttgart","country":"DE"}'::jsonb, 'active'),
+  ('22222222-2222-2222-2222-222222220202'::uuid, '11111111-1111-1111-1111-111111110002'::uuid, 'Line 2',               'line-2',               'eu-central-1',  'Europe/Berlin',    'sovereign_cloud', '{"city":"Stuttgart","country":"DE"}'::jsonb, 'active'),
+  ('22222222-2222-2222-2222-222222220203'::uuid, '11111111-1111-1111-1111-111111110002'::uuid, 'Packaging Cell',       'packaging-cell',       'eu-central-1',  'Europe/Berlin',    'sovereign_cloud', '{"city":"Stuttgart","country":"DE"}'::jsonb, 'active'),
   -- CivicCare
-  ('22222222-2222-2222-2222-2222campk0301'::uuid, '11111111-1111-1111-1111-1111civi0003'::uuid, 'Campus Kitchen',       'campus-kitchen',       'ap-south-1',    'Asia/Kolkata',     'on_prem',  '{"city":"Bengaluru","country":"IN"}'::jsonb, 'active'),
-  ('22222222-2222-2222-2222-2222hospk0302'::uuid, '11111111-1111-1111-1111-1111civi0003'::uuid, 'Hospital Kitchen',     'hospital-kitchen',     'ap-south-1',    'Asia/Kolkata',     'on_prem',  '{"city":"Bengaluru","country":"IN"}'::jsonb, 'active'),
-  ('22222222-2222-2222-2222-2222clds0303'::uuid, '11111111-1111-1111-1111-1111civi0003'::uuid, 'Cold Storage',         'cold-storage',         'ap-south-1',    'Asia/Kolkata',     'on_prem',  '{"city":"Bengaluru","country":"IN"}'::jsonb, 'active')
+  ('22222222-2222-2222-2222-222222220301'::uuid, '11111111-1111-1111-1111-111111110003'::uuid, 'Campus Kitchen',       'campus-kitchen',       'ap-south-1',    'Asia/Kolkata',     'on_prem',  '{"city":"Bengaluru","country":"IN"}'::jsonb, 'active'),
+  ('22222222-2222-2222-2222-222222220302'::uuid, '11111111-1111-1111-1111-111111110003'::uuid, 'Hospital Kitchen',     'hospital-kitchen',     'ap-south-1',    'Asia/Kolkata',     'on_prem',  '{"city":"Bengaluru","country":"IN"}'::jsonb, 'active'),
+  ('22222222-2222-2222-2222-222222220303'::uuid, '11111111-1111-1111-1111-111111110003'::uuid, 'Cold Storage',         'cold-storage',         'ap-south-1',    'Asia/Kolkata',     'on_prem',  '{"city":"Bengaluru","country":"IN"}'::jsonb, 'active')
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -69,25 +69,31 @@ BEGIN
   FOR v_user IN
     SELECT *
     FROM (VALUES
-      ('aaaaaaaa-aaaa-aaaa-aaaa-aaaa00000001'::uuid, 'super.admin@kerning.ooo',                    'Kerning Super Admin',         'super_admin',              '00000000-0000-0000-0000-00000000ke00'::uuid),
-      ('aaaaaaaa-aaaa-aaaa-aaaa-aaaa00000002'::uuid, 'sales.admin@kerning.ooo',                    'Kerning Sales Admin',         'sales_admin',              '00000000-0000-0000-0000-00000000ke00'::uuid),
-      ('aaaaaaaa-aaaa-aaaa-aaaa-aaaa00000003'::uuid, 'success.manager@kerning.ooo',                'Kerning Client Success',      'client_success_manager',   '00000000-0000-0000-0000-00000000ke00'::uuid),
-      ('aaaaaaaa-aaaa-aaaa-aaaa-aaaa00000004'::uuid, 'data.engineer@kerning.ooo',                  'Kerning Data Engineer',       'data_engineer',            '00000000-0000-0000-0000-00000000ke00'::uuid),
-      ('bbbbbbbb-bbbb-bbbb-bbbb-bbbb00000001'::uuid, 'owner@meridian.example.com',                 'Maya Lindgren',               'client_owner',             '11111111-1111-1111-1111-1111meri0001'::uuid),
-      ('bbbbbbbb-bbbb-bbbb-bbbb-bbbb00000002'::uuid, 'manager.kitchen01@meridian.example.com',     'Anders Holm',                 'site_manager',             '11111111-1111-1111-1111-1111meri0001'::uuid),
-      ('bbbbbbbb-bbbb-bbbb-bbbb-bbbb00000003'::uuid, 'cfo@meridian.example.com',                   'Priya Subramanian',           'executive_cfo',            '11111111-1111-1111-1111-1111meri0001'::uuid),
-      ('cccccccc-cccc-cccc-cccc-cccc00000001'::uuid, 'maintenance@northline.example.com',          'Jonas Bekker',                'maintenance_engineer',     '11111111-1111-1111-1111-1111nort0002'::uuid),
-      ('cccccccc-cccc-cccc-cccc-cccc00000002'::uuid, 'operator@northline.example.com',             'Leo Marais',                  'operator',                 '11111111-1111-1111-1111-1111nort0002'::uuid),
-      ('dddddddd-dddd-dddd-dddd-dddd00000001'::uuid, 'qa@civiccare.example.com',                   'Aditi Rao',                   'qa_compliance_officer',    '11111111-1111-1111-1111-1111civi0003'::uuid)
+      ('aaaaaaaa-aaaa-aaaa-aaaa-aaaa00000001'::uuid, 'super.admin@kerning.ooo',                    'Kerning Super Admin',         'super_admin',              '00000000-0000-0000-0000-000000000001'::uuid),
+      ('aaaaaaaa-aaaa-aaaa-aaaa-aaaa00000002'::uuid, 'sales.admin@kerning.ooo',                    'Kerning Sales Admin',         'sales_admin',              '00000000-0000-0000-0000-000000000001'::uuid),
+      ('aaaaaaaa-aaaa-aaaa-aaaa-aaaa00000003'::uuid, 'success.manager@kerning.ooo',                'Kerning Client Success',      'client_success_manager',   '00000000-0000-0000-0000-000000000001'::uuid),
+      ('aaaaaaaa-aaaa-aaaa-aaaa-aaaa00000004'::uuid, 'data.engineer@kerning.ooo',                  'Kerning Data Engineer',       'data_engineer',            '00000000-0000-0000-0000-000000000001'::uuid),
+      ('bbbbbbbb-bbbb-bbbb-bbbb-bbbb00000001'::uuid, 'owner@meridian.example.com',                 'Maya Lindgren',               'client_owner',             '11111111-1111-1111-1111-111111110001'::uuid),
+      ('bbbbbbbb-bbbb-bbbb-bbbb-bbbb00000002'::uuid, 'manager.kitchen01@meridian.example.com',     'Anders Holm',                 'site_manager',             '11111111-1111-1111-1111-111111110001'::uuid),
+      ('bbbbbbbb-bbbb-bbbb-bbbb-bbbb00000003'::uuid, 'cfo@meridian.example.com',                   'Priya Subramanian',           'executive_cfo',            '11111111-1111-1111-1111-111111110001'::uuid),
+      ('cccccccc-cccc-cccc-cccc-cccc00000001'::uuid, 'maintenance@northline.example.com',          'Jonas Bekker',                'maintenance_engineer',     '11111111-1111-1111-1111-111111110002'::uuid),
+      ('cccccccc-cccc-cccc-cccc-cccc00000002'::uuid, 'operator@northline.example.com',             'Leo Marais',                  'operator',                 '11111111-1111-1111-1111-111111110002'::uuid),
+      ('dddddddd-dddd-dddd-dddd-dddd00000001'::uuid, 'qa@civiccare.example.com',                   'Aditi Rao',                   'qa_compliance_officer',    '11111111-1111-1111-1111-111111110003'::uuid)
     ) AS t(id, email, full_name, role_slug, org_id)
   LOOP
     -- Insert auth.users (skip if email already exists)
+    -- GoTrue's scanner needs every nullable string column to be the empty
+    -- string, not NULL — otherwise password sign-in throws a 500.
     INSERT INTO auth.users (
       instance_id, id, aud, role,
       email, encrypted_password,
       email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
       created_at, updated_at, last_sign_in_at,
-      confirmation_token, email_change_token_new, recovery_token
+      confirmation_token, email_change, email_change_token_new,
+      email_change_token_current, recovery_token,
+      phone_change, phone_change_token, reauthentication_token,
+      is_sso_user, is_anonymous,
+      email_change_confirm_status
     ) VALUES (
       '00000000-0000-0000-0000-000000000000'::uuid,
       v_user.id,
@@ -99,7 +105,11 @@ BEGIN
       json_build_object('provider', 'email', 'providers', json_build_array('email'))::jsonb,
       json_build_object('full_name', v_user.full_name)::jsonb,
       now(), now(), now(),
-      '', '', ''
+      '', '', '',
+      '', '',
+      '', '', '',
+      false, false,
+      0
     )
     ON CONFLICT (id) DO NOTHING;
 
