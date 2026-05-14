@@ -27,6 +27,8 @@ const baseSchema = z.object({
   CRON_SECRET: z.string().optional(),
   NEXT_PUBLIC_GSC_TOKEN: z.string().optional(),
   NEXT_PUBLIC_BING_TOKEN: z.string().optional(),
+  SENTRY_DSN: z.string().optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
 });
 
 export const env = baseSchema.parse({
@@ -39,6 +41,8 @@ export const env = baseSchema.parse({
   CRON_SECRET: process.env.CRON_SECRET,
   NEXT_PUBLIC_GSC_TOKEN: process.env.NEXT_PUBLIC_GSC_TOKEN,
   NEXT_PUBLIC_BING_TOKEN: process.env.NEXT_PUBLIC_BING_TOKEN,
+  SENTRY_DSN: process.env.SENTRY_DSN,
+  NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
 });
 
 export const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
@@ -184,3 +188,6 @@ export const RATE_LIMIT_CONFIGURED = upstashSchema.safeParse({
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
 }).success;
+
+/** True when Sentry DSN is set on the server. */
+export const SENTRY_CONFIGURED = Boolean(env.SENTRY_DSN);
