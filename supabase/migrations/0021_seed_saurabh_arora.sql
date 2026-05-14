@@ -83,28 +83,28 @@ INSERT INTO public.workflow_canvases (
    '22222222-2222-2222-2222-222222220002'::uuid, '22222222-2222-2222-2222-222222220003'::uuid, 'refined_oil_cf',
    'Saurabh Arora — Current Manual Workflow',
    'Refined Oil Distribution / C&F Operations',
-   'current_manual', 'internal_review', 'shared_all',
+   'current_manual', 'shared_with_client', 'shared_all',
    ARRAY['Actual Client','Partner Referral','Discovery']::text[]),
 
   ('22222222-2222-2222-2222-222222220011'::uuid,
    '22222222-2222-2222-2222-222222220002'::uuid, '22222222-2222-2222-2222-222222220003'::uuid, 'refined_oil_cf',
    'Saurabh Arora — Proposed ERP Workflow',
    'Refined Oil Distribution / C&F Operations',
-   'proposed_erp', 'internal_review', 'shared_all',
+   'proposed_erp', 'shared_with_client', 'shared_all',
    ARRAY['Actual Client','Partner Referral','Discovery']::text[]),
 
   ('22222222-2222-2222-2222-222222220012'::uuid,
    '22222222-2222-2222-2222-222222220002'::uuid, '22222222-2222-2222-2222-222222220003'::uuid, 'refined_oil_cf',
    'Saurabh Arora — ERP + AI Workflow',
    'Refined Oil Distribution / C&F Operations',
-   'erp_ai', 'internal_review', 'shared_all',
+   'erp_ai', 'shared_with_client', 'shared_all',
    ARRAY['Actual Client','Partner Referral','Discovery','ERP + AI']::text[]),
 
   ('22222222-2222-2222-2222-222222220013'::uuid,
    '22222222-2222-2222-2222-222222220002'::uuid, '22222222-2222-2222-2222-222222220003'::uuid, 'refined_oil_cf',
    'Saurabh Arora — Workflow Canvas',
    'Refined Oil Distribution / C&F Operations',
-   'combined', 'internal_review', 'shared_all',
+   'combined', 'shared_with_client', 'shared_all',
    ARRAY['Actual Client','Partner Referral','Discovery','ERP + AI Workflow']::text[])
 ON CONFLICT (id) DO NOTHING;
 
