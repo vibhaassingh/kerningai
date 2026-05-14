@@ -135,6 +135,184 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
+-- Operational demo seed — assets, equipment health, agent recommendations
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE
+  v_meridian uuid := '11111111-1111-1111-1111-111111110001';
+  v_northline uuid := '11111111-1111-1111-1111-111111110002';
+  v_civiccare uuid := '11111111-1111-1111-1111-111111110003';
+
+  v_hotel_kitchen uuid := '22222222-2222-2222-2222-222222220101';
+  v_commissary    uuid := '22222222-2222-2222-2222-222222220102';
+  v_plant04       uuid := '22222222-2222-2222-2222-222222220201';
+  v_line2         uuid := '22222222-2222-2222-2222-222222220202';
+  v_campus        uuid := '22222222-2222-2222-2222-222222220301';
+  v_hospital      uuid := '22222222-2222-2222-2222-222222220302';
+  v_cold_storage  uuid := '22222222-2222-2222-2222-222222220303';
+BEGIN
+
+  INSERT INTO public.assets (id, organization_id, site_id, name, asset_code, kind, status, manufacturer, model) VALUES
+    ('33333333-3333-3333-3333-333333330001', v_meridian, v_hotel_kitchen, 'Combi oven #07',         'CO-007',  'combi_oven',         'watch',    'Rational',   'iCombi Pro 20-1/1'),
+    ('33333333-3333-3333-3333-333333330002', v_meridian, v_commissary,    'Compressor cluster A',   'CC-A',    'compressor',         'at_risk',  'Bitzer',     '4CES-9Y'),
+    ('33333333-3333-3333-3333-333333330003', v_meridian, v_hotel_kitchen, 'Hood motor — line 2',    'HM-L2',   'hood_motor',         'healthy',  'Halton',     'KSA-2.5'),
+    ('33333333-3333-3333-3333-333333330011', v_northline, v_plant04,      'HVAC Zone 7',            'HVAC-Z7', 'hvac',               'watch',    'Daikin',     'VRV IV S'),
+    ('33333333-3333-3333-3333-333333330012', v_northline, v_line2,        'Bearing rig — Line 2',   'BR-L2',   'bearing_rig',        'at_risk',  'SKF',        'SYJ 75 TF'),
+    ('33333333-3333-3333-3333-333333330013', v_northline, v_plant04,      'Robotic cell #03',       'RC-03',   'robotic_cell',       'healthy',  'ABB',        'IRB 6700'),
+    ('33333333-3333-3333-3333-333333330021', v_civiccare, v_campus,       'Cold room A',            'CR-A',    'cold_room',          'watch',    'Carrier',    'AquaSnap 30RB'),
+    ('33333333-3333-3333-3333-333333330022', v_civiccare, v_hospital,     'Refrigeration rack 2',   'RR-02',   'refrigeration_rack', 'at_risk',  'Hussmann',   'PROTOCOL'),
+    ('33333333-3333-3333-3333-333333330023', v_civiccare, v_cold_storage, 'Utility meter — main',   'UM-MAIN', 'utility_meter',      'healthy',  'Schneider',  'PowerLogic ION9000')
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.equipment_health_scores (organization_id, asset_id, score, confidence, band, reason, forecast_event, forecast_days) VALUES
+    (v_meridian,  '33333333-3333-3333-3333-333333330001', 72, 0.82, 'watch',    'Vibration delta on the fan motor up 7% MTD',                       'Bearing replacement',  21),
+    (v_meridian,  '33333333-3333-3333-3333-333333330002', 41, 0.91, 'at_risk',  'Discharge temperature drift + amperage volatility',                'Compressor failure',   19),
+    (v_meridian,  '33333333-3333-3333-3333-333333330003', 88, 0.74, 'healthy',  'Within baseline',                                                   NULL,                   NULL),
+    (v_northline, '33333333-3333-3333-3333-333333330011', 67, 0.79, 'watch',    'Setpoint exceeded during tariff peak — efficiency drop 12%',       'HVAC optimization',    NULL),
+    (v_northline, '33333333-3333-3333-3333-333333330012', 38, 0.94, 'at_risk',  'Vibration drift on bearing — high-frequency band rising',          'Bearing replacement',  14),
+    (v_northline, '33333333-3333-3333-3333-333333330013', 91, 0.66, 'healthy',  'Within baseline; minor accuracy drift in z-axis',                  NULL,                   NULL),
+    (v_civiccare, '33333333-3333-3333-3333-333333330021', 64, 0.88, 'watch',    'Cold room A temperature trailing setpoint during 14:00 shift',     'Cold-chain breach',    7),
+    (v_civiccare, '33333333-3333-3333-3333-333333330022', 33, 0.93, 'at_risk',  'Compressor 2 short-cycling; discharge temp rising',                'Refrigeration failure',10),
+    (v_civiccare, '33333333-3333-3333-3333-333333330023', 95, 0.71, 'healthy',  'Within baseline',                                                   NULL,                   NULL)
+  ON CONFLICT DO NOTHING;
+
+  INSERT INTO public.agent_runs (id, organization_id, template_slug, started_at, finished_at, status) VALUES
+    ('44444444-4444-4444-4444-444444440001', v_meridian,  'maintenance_forecast', now() - interval '2 hours', now() - interval '2 hours' + interval '40 seconds', 'succeeded'),
+    ('44444444-4444-4444-4444-444444440003', v_meridian,  'energy_optimization',  now() - interval '40 minutes', now() - interval '40 minutes' + interval '8 seconds', 'succeeded'),
+    ('44444444-4444-4444-4444-444444440011', v_northline, 'maintenance_forecast', now() - interval '3 hours', now() - interval '3 hours' + interval '52 seconds', 'succeeded'),
+    ('44444444-4444-4444-4444-444444440012', v_northline, 'energy_optimization',  now() - interval '30 minutes', now() - interval '30 minutes' + interval '14 seconds', 'succeeded'),
+    ('44444444-4444-4444-4444-444444440021', v_civiccare, 'compliance_variance',  now() - interval '1 hour', now() - interval '1 hour' + interval '15 seconds', 'succeeded'),
+    ('44444444-4444-4444-4444-444444440022', v_civiccare, 'cold_chain_monitor',   now() - interval '50 minutes', now() - interval '50 minutes' + interval '11 seconds', 'succeeded')
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.agent_recommendations
+    (id, organization_id, site_id, asset_id, run_id, template_slug, title, summary, reasoning, risk_level, confidence, expected_impact, evidence, proposed_action, status, expires_at)
+  VALUES
+    ('55555555-5555-5555-5555-555555550001',
+     v_meridian, v_commissary, '33333333-3333-3333-3333-333333330002', '44444444-4444-4444-4444-444444440001',
+     'maintenance_forecast',
+     'Compressor cluster A likely failure in 19 days',
+     'Discharge temperature has drifted 7°C above baseline over the last 14 days, paired with amperage volatility that fits the prior failure pattern from Q3 2025.',
+     'Anomaly score 0.91 against the cluster-A baseline; same drift signature preceded the May 2025 compressor swap by 17 days.',
+     'requires_approval', 0.91,
+     'Avoid an estimated 22h unplanned downtime + €1,800 spoilage if scheduled now.',
+     '[{"label":"Discharge temp drift","value":"+7°C MTD"},{"label":"Amperage sigma","value":"2.3x baseline"},{"label":"Prior similar event","value":"May 2025"}]'::jsonb,
+     'Schedule a compressor swap for Saturday 04:00 maintenance window. Order spare today.',
+     'pending', now() + interval '7 days'),
+
+    ('55555555-5555-5555-5555-555555550002',
+     v_meridian, v_hotel_kitchen, '33333333-3333-3333-3333-333333330001', '44444444-4444-4444-4444-444444440001',
+     'maintenance_forecast',
+     'Combi oven #07 fan motor needs attention',
+     'Vibration delta on the fan motor is up 7% month-to-date. Still within tolerance, but trending toward intervention.',
+     'Vibration high-band rising 0.06 mm/s per week; tolerance breach predicted in 21 days at current rate.',
+     'operational', 0.82,
+     'Pre-emptive 2h service vs. ~6h breakdown.',
+     '[{"label":"Vibration delta","value":"+7% MTD"},{"label":"Time to breach","value":"~21 days"}]'::jsonb,
+     'Book a 2h preventative service in the next maintenance window.',
+     'pending', now() + interval '14 days'),
+
+    ('55555555-5555-5555-5555-555555550003',
+     v_meridian, v_commissary, NULL, '44444444-4444-4444-4444-444444440003',
+     'energy_optimization',
+     'Refrigeration setpoint can be raised 0.8C during tariff peak',
+     'Tariff window 17:00-20:00 is 2.4x the day-rate. Cold-room A holds 1.6C below FSMS target with current load.',
+     'Forecasted ambient + occupancy match the model that supported a similar peak-shave in Aug 2025 without HACCP impact.',
+     'requires_approval', 0.84,
+     '420 euro/month savings; HACCP envelope preserved.',
+     '[{"label":"Peak tariff","value":"0.42/kWh"},{"label":"Day tariff","value":"0.17/kWh"}]'::jsonb,
+     'Raise cold-room A setpoint by 0.8C during 17:00-20:00. Auto-revert at 20:00.',
+     'pending', now() + interval '24 hours'),
+
+    ('55555555-5555-5555-5555-555555550011',
+     v_northline, v_line2, '33333333-3333-3333-3333-333333330012', '44444444-4444-4444-4444-444444440011',
+     'maintenance_forecast',
+     'Bearing rig — Line 2 vibration drift above baseline',
+     'High-frequency vibration band has risen for 9 consecutive days. Confidence is high that this is the same envelope that preceded the December 2024 bearing failure.',
+     'Spectral peak at 187 Hz growing 3.1% per day; envelope detection 0.94.',
+     'critical_approval', 0.94,
+     'Avoid an estimated 36h line stoppage + 12k euro of WIP rework.',
+     '[{"label":"Drift band","value":"187 Hz"},{"label":"Growth","value":"+3.1%/day"},{"label":"Prior failure","value":"Dec 2024"}]'::jsonb,
+     'Shut down Line 2 at next changeover and replace bearing assembly. Total ~5h.',
+     'pending', now() + interval '7 days'),
+
+    ('55555555-5555-5555-5555-555555550012',
+     v_northline, v_plant04, '33333333-3333-3333-3333-333333330011', '44444444-4444-4444-4444-444444440012',
+     'energy_optimization',
+     'HVAC Zone 7 setpoint reducible during tariff peak',
+     'Occupancy data shows Zone 7 averages 0.3 person/sqm during 17:00-19:00. Current setpoint is 0.8C tighter than required.',
+     'Comfort model 0.79 confidence. Identical adjustment held without complaints in Zone 4 since March.',
+     'requires_approval', 0.79,
+     '12.4% energy reduction during peak; no impact on operations.',
+     '[{"label":"Peak savings est.","value":"12.4%"},{"label":"Zone 4 precedent","value":"3 months, 0 complaints"}]'::jsonb,
+     'Raise Zone 7 setpoint by 0.8C during 17:00-19:00 daily.',
+     'pending', now() + interval '5 days'),
+
+    ('55555555-5555-5555-5555-555555550021',
+     v_civiccare, v_campus, '33333333-3333-3333-3333-333333330021', '44444444-4444-4444-4444-444444440022',
+     'cold_chain_monitor',
+     'Cold room A — 14:00 temperature log missing',
+     'No reading captured for the 14:00 shift on cold room A. FSMS protocol requires manual sign-off.',
+     'Operator did not check in. Door-open event count consistent with normal operation.',
+     'operational', 0.99,
+     'Stay compliant with the campus FSMS audit due Friday.',
+     '[{"label":"Missing log","value":"14:00 shift today"},{"label":"Last reading","value":"-0.4C @ 10:00"}]'::jsonb,
+     'Notify QA officer to record manual reading + capture sign-off in the audit checklist.',
+     'pending', now() + interval '12 hours'),
+
+    ('55555555-5555-5555-5555-555555550022',
+     v_civiccare, v_hospital, '33333333-3333-3333-3333-333333330022', '44444444-4444-4444-4444-444444440022',
+     'cold_chain_monitor',
+     'Refrigeration rack 2 short-cycling',
+     'Compressor 2 has short-cycled 14 times in the last 6 hours. Suction superheat rising.',
+     'Cycling pattern + superheat signature matches an upcoming refrigerant charge event.',
+     'requires_approval', 0.86,
+     'Avoid an unplanned full-stack defrost during meal service.',
+     '[{"label":"Short cycles 6h","value":"14"},{"label":"Suction SH","value":"+3.2 K"}]'::jsonb,
+     'Dispatch a service technician within 24h to check refrigerant charge + expansion valve.',
+     'pending', now() + interval '3 days'),
+
+    ('55555555-5555-5555-5555-555555550023',
+     v_civiccare, v_campus, NULL, '44444444-4444-4444-4444-444444440021',
+     'compliance_variance',
+     'FSMS variance detected on Line 2',
+     'Yesterday''s audit checklist shows 3 unchecked steps in the chilling SOP. Draft corrective action ready.',
+     'Audit row 47-49 unchecked. Audit closed without manager sign-off.',
+     'requires_approval', 0.97,
+     'Pre-empt non-conformance during Friday''s campus audit.',
+     '[{"label":"Unchecked steps","value":"3"},{"label":"Audit","value":"#A-2231"}]'::jsonb,
+     'Send the corrective action draft to the QA officer for review + sign-off.',
+     'pending', now() + interval '2 days')
+  ON CONFLICT (id) DO NOTHING;
+
+  -- One historical approved decision so the action ledger isn't empty
+  INSERT INTO public.agent_recommendations
+    (id, organization_id, site_id, asset_id, template_slug, title, summary, risk_level, confidence,
+     expected_impact, proposed_action, status, decided_at, decided_by_id, decision_reason)
+  VALUES
+    ('55555555-5555-5555-5555-555555550031',
+     v_meridian, v_commissary, NULL, 'energy_optimization',
+     'Peak-shave on cold-room A — Sep 2026',
+     'Raised setpoint 0.8C during peak hours. Auto-reverted nightly.',
+     'requires_approval', 0.84,
+     '380 euro saved over the month.',
+     'Raise cold-room A setpoint by 0.8C during 17:00-20:00.',
+     'approved', now() - interval '14 days',
+     (SELECT id FROM public.app_users WHERE email = 'owner@meridian.example.com' LIMIT 1),
+     'Approved after FSMS review; auto-revert configured.')
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.agent_actions (organization_id, recommendation_id, kind, actor_id, reason)
+  SELECT v_meridian, '55555555-5555-5555-5555-555555550031', 'approved',
+    (SELECT id FROM public.app_users WHERE email = 'owner@meridian.example.com' LIMIT 1),
+    'Approved after FSMS review; auto-revert configured.'
+  WHERE NOT EXISTS (
+    SELECT 1 FROM public.agent_actions WHERE recommendation_id = '55555555-5555-5555-5555-555555550031'
+  );
+
+END $$;
+
+-- ---------------------------------------------------------------------------
 -- Print a summary so `supabase db reset` operators see what's available
 -- ---------------------------------------------------------------------------
 DO $$

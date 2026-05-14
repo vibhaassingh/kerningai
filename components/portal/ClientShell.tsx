@@ -14,14 +14,14 @@ const PORTAL_NAV: SidebarSection[] = [
     items: [
       { number: "01", href: "/portal/dashboard", label: "Dashboard" },
       { number: "02", href: "/portal/live", label: "Live Operations", disabled: true, badge: "Phase 4" },
-      { number: "03", href: "/portal/agents/inbox", label: "Agent Inbox", disabled: true, badge: "Phase 4" },
+      { number: "03", href: "/portal/agents/inbox", label: "Agent Inbox" },
     ],
   },
   {
     title: "02 — Modules",
     items: [
-      { number: "04", href: "/portal/maintenance", label: "Maintenance", disabled: true, badge: "Phase 4" },
-      { number: "05", href: "/portal/energy", label: "Energy", disabled: true, badge: "Phase 4" },
+      { number: "04", href: "/portal/maintenance", label: "Maintenance" },
+      { number: "05", href: "/portal/energy", label: "Energy", disabled: true, badge: "Phase 4b" },
       { number: "06", href: "/portal/compliance", label: "Compliance", disabled: true, badge: "Phase 4" },
       { number: "07", href: "/portal/decision-intelligence", label: "Decision Intelligence", disabled: true, badge: "Phase 4" },
       { number: "08", href: "/portal/ontology", label: "Ontology Explorer", disabled: true, badge: "Phase 4" },

@@ -1,66 +1,167 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
 import { Eyebrow } from "@/components/primitives/Eyebrow";
+import { RecommendationCard } from "@/components/portal/RecommendationCard";
+import { HealthBandBadge } from "@/components/portal/HealthBandBadge";
+import { formatRelative } from "@/lib/admin/format";
+import { listAssetsForClient } from "@/lib/portal/maintenance";
+import { listPendingRecommendations } from "@/lib/portal/agents";
+import { getPortalContext } from "@/lib/portal/team";
 
-export const metadata = {
-  title: "Dashboard",
-};
+export const metadata = { title: "Dashboard" };
+export const dynamic = "force-dynamic";
 
-/**
- * Phase 1 placeholder. Role-personalized dashboards populate in Phase 4
- * once operational data is flowing.
- */
-export default function PortalDashboardPage() {
+export default async function PortalDashboardPage() {
+  const ctx = await getPortalContext();
+  if (!ctx) redirect("/portal");
+
+  const [assets, pendingRecs] = await Promise.all([
+    listAssetsForClient(ctx.organizationId),
+    listPendingRecommendations(ctx.organizationId),
+  ]);
+
+  const atRisk = assets.filter(
+    (a) => a.status === "at_risk" || a.health_band === "at_risk" || a.health_band === "critical",
+  );
+  const watch = assets.filter((a) => a.status === "watch" || a.health_band === "watch");
+  const critical = pendingRecs.filter(
+    (r) => r.risk_level === "critical_approval" || r.risk_level === "blocked",
+  );
+  const topAlerts = [...atRisk, ...watch].slice(0, 4);
+
   return (
-    <div className="space-y-12">
+    <div className="space-y-14">
       <header className="space-y-4">
-        <Eyebrow number="01">Today</Eyebrow>
+        <Eyebrow number="01">Today · {ctx.organizationName}</Eyebrow>
         <h1 className="text-display text-[clamp(2rem,5vw,3.2rem)] font-medium leading-[1.05] tracking-[-0.03em]">
-          Your <span className="italic text-[var(--color-signal)]">operational</span> dashboard.
+          What needs <span className="italic text-[var(--color-signal)]">your attention</span>.
         </h1>
-        <p className="max-w-xl text-[15px] leading-relaxed text-[var(--color-text-faded)]">
-          This view personalizes to your role and the modules your
-          workspace has enabled. Live data arrives once your deployment
-          starts ingesting from sensors, ERPs, and BMS systems.
-        </p>
       </header>
 
-      <section className="grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-3">
-        {TILES.map((tile) => (
-          <article
-            key={tile.label}
-            className="space-y-3 bg-bg-elev/40 px-6 py-8"
-          >
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-faint)]">
-              {tile.number} — {tile.label}
-            </p>
-            <p className="text-stat text-[2.6rem] font-medium text-text">—</p>
-            <p className="text-[11px] uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
-              {tile.hint}
-            </p>
-          </article>
-        ))}
+      <section className="grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
+        <Tile
+          number="01"
+          label="Pending approvals"
+          value={pendingRecs.length.toString()}
+          hint={`${critical.length} critical`}
+          link={{ href: "/portal/agents/inbox", label: "Inbox ↗" }}
+        />
+        <Tile
+          number="02"
+          label="Assets at risk"
+          value={atRisk.length.toString()}
+          hint={`${watch.length} on watch`}
+          link={{ href: "/portal/maintenance", label: "Maintenance ↗" }}
+        />
+        <Tile
+          number="03"
+          label="Healthy assets"
+          value={(assets.length - atRisk.length - watch.length).toString()}
+          hint={`${assets.length} total`}
+        />
+        <Tile
+          number="04"
+          label="Sites"
+          value={new Set(assets.map((a) => a.site_id).filter(Boolean)).size.toString()}
+        />
       </section>
 
-      <section className="rounded-2xl border border-hairline bg-bg-elev/30 px-8 py-10">
-        <Eyebrow number="02">Welcome</Eyebrow>
-        <h2 className="mt-4 text-display text-[clamp(1.4rem,3vw,2rem)] font-medium tracking-[-0.02em]">
-          Your workspace is{" "}
-          <span className="italic text-[var(--color-signal)]">live</span>.
-        </h2>
-        <p className="mt-6 text-[14px] text-[var(--color-text-faded)]">
-          From the left rail you can reach your Security Settings. The
-          operational modules light up as your deployment progresses
-          through onboarding.
-        </p>
+      <section className="grid gap-10 lg:grid-cols-[1.3fr_1fr]">
+        <article className="space-y-5">
+          <header className="flex items-end justify-between gap-3">
+            <Eyebrow number="02">Top agent signals</Eyebrow>
+            <Link
+              href="/portal/agents/inbox"
+              className="nav-link text-[11.5px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]"
+            >
+              See all ↗
+            </Link>
+          </header>
+          {pendingRecs.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-hairline bg-bg-elev/20 px-6 py-12 text-center text-[14px] text-[var(--color-text-muted)]">
+              No agent recommendations right now.
+            </p>
+          ) : (
+            <div className="space-y-5">
+              {pendingRecs.slice(0, 3).map((rec) => (
+                <RecommendationCard key={rec.id} rec={rec} compact />
+              ))}
+            </div>
+          )}
+        </article>
+
+        <article className="space-y-5">
+          <header className="flex items-end justify-between gap-3">
+            <Eyebrow number="03">Asset spotlight</Eyebrow>
+            <Link
+              href="/portal/maintenance"
+              className="nav-link text-[11.5px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]"
+            >
+              All assets ↗
+            </Link>
+          </header>
+          {topAlerts.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-hairline bg-bg-elev/20 px-6 py-10 text-center text-[13.5px] text-[var(--color-text-muted)]">
+              Every asset is in the healthy band.
+            </p>
+          ) : (
+            <ul className="overflow-hidden rounded-2xl border border-hairline bg-bg-elev/30">
+              {topAlerts.map((a) => (
+                <li
+                  key={a.id}
+                  className="grid gap-3 border-b border-hairline px-5 py-4 last:border-b-0 sm:grid-cols-[1fr_auto]"
+                >
+                  <Link
+                    href={`/portal/maintenance/assets/${a.id}`}
+                    className="space-y-0.5"
+                  >
+                    <div className="text-text">{a.name}</div>
+                    <div className="text-[11.5px] text-[var(--color-text-muted)]">
+                      {a.site_name ?? a.kind.replace(/_/g, " ")}
+                      {a.observed_at && ` · ${formatRelative(a.observed_at)}`}
+                    </div>
+                  </Link>
+                  <HealthBandBadge band={a.health_band} score={a.health_score} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
       </section>
     </div>
   );
 }
 
-const TILES = [
-  { number: "01", label: "Active alerts", hint: "Phase 4" },
-  { number: "02", label: "Pending approvals", hint: "Phase 4" },
-  { number: "03", label: "Today's tasks", hint: "Phase 4" },
-  { number: "04", label: "Energy index", hint: "Phase 4" },
-  { number: "05", label: "Compliance score", hint: "Phase 4" },
-  { number: "06", label: "OEE / yield", hint: "Phase 4" },
-];
+function Tile({
+  number,
+  label,
+  value,
+  hint,
+  link,
+}: {
+  number: string;
+  label: string;
+  value: string;
+  hint?: string;
+  link?: { href: string; label: string };
+}) {
+  return (
+    <article className="space-y-2 bg-bg-elev/40 px-6 py-6">
+      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-faint)]">
+        {number} — {label}
+      </p>
+      <p className="text-stat text-[2.4rem] font-medium text-text tabular-nums">
+        {value}
+      </p>
+      <div className="flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
+        {hint ? <span>{hint}</span> : <span />}
+        {link && (
+          <Link href={link.href} className="nav-link text-text">
+            {link.label}
+          </Link>
+        )}
+      </div>
+    </article>
+  );
+}
