@@ -14,12 +14,10 @@ export interface SentryContext {
 }
 
 export function captureException(err: unknown, ctx?: SentryContext): void {
-  // eslint-disable-next-line no-console
   console.error("[sentry-stub]", err, ctx ?? "");
 }
 
 export function captureMessage(message: string, ctx?: SentryContext): void {
-  // eslint-disable-next-line no-console
   console.warn("[sentry-stub]", message, ctx ?? "");
 }
 

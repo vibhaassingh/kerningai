@@ -167,7 +167,7 @@ function pickIntegrations(input: GenerateInput): BlueprintRecord["integrations"]
     other: { system: "Other / bespoke", risk: "medium" },
   };
 
-  return sources.map((s, idx) => {
+  return sources.map((s) => {
     const meta = labels[s] ?? { system: s, risk: "medium" as const };
     return {
       system: meta.system,

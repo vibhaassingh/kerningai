@@ -82,7 +82,7 @@ export async function getEnergyOverview(organizationId: string): Promise<{
 
   const meterRowsTyped = ((meterRows ?? []) as unknown as MeterRow[]) ?? [];
   const meterIds = meterRowsTyped.map((m) => m.id);
-  let readingsByMeter = new Map<string, { consumption: number; cost: number }>();
+  const readingsByMeter = new Map<string, { consumption: number; cost: number }>();
   if (meterIds.length > 0) {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data: readings } = await supabase

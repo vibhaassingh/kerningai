@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId } from "react";
+import { useCallback, useId, useMemo } from "react";
 
 import { cn } from "@/lib/cn";
 import type { QuestionnaireQuestion } from "@/lib/discovery/templates";
@@ -256,7 +256,10 @@ function SingleSelect(p: QuestionRendererProps) {
 }
 
 function MultiSelect(p: QuestionRendererProps) {
-  const current = Array.isArray(p.value) ? (p.value as string[]) : [];
+  const current = useMemo(
+    () => (Array.isArray(p.value) ? (p.value as string[]) : []),
+    [p.value],
+  );
   const toggle = useCallback(
     (val: string) => {
       const next = current.includes(val)

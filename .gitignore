@@ -37,6 +37,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Claude / IDE worktrees
+.claude/worktrees/
+.vscode/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
