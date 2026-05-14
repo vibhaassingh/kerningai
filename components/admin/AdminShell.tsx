@@ -29,8 +29,8 @@ const ADMIN_NAV: SidebarSection[] = [
   {
     title: "03 — Govern",
     items: [
-      { number: "08", href: "/admin/security/users", label: "Users & Roles", disabled: true, badge: "Phase 2" },
-      { number: "09", href: "/admin/security/audit-log", label: "Audit Log", disabled: true, badge: "Phase 2" },
+      { number: "08", href: "/admin/security/users", label: "Users & Roles" },
+      { number: "09", href: "/admin/security/audit-log", label: "Audit Log" },
       { number: "10", href: "/admin/system-health", label: "System Health", disabled: true, badge: "Phase 2" },
       { number: "11", href: "/admin/settings/security", label: "Security Settings" },
     ],
