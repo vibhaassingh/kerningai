@@ -38,8 +38,13 @@ export async function requireUser() {
 
 /**
  * Resolves the current user plus a membership in the given org. Throws
- * `UnauthorizedError` if the user is not a member of that org. Returns
- * the membership for downstream role/permission checks.
+ * `TenantBoundaryError` if the user has no relationship to that org.
+ *
+ * Internal staff have an implicit cross-org affinity: even though
+ * `super_admin` and friends aren't members of every client's org row,
+ * they're allowed to operate on it. We return a synthetic membership
+ * for that path so downstream permission checks still pass through the
+ * normal `requirePermission` helper.
  *
  * NOTE: this does not perform the permission check itself — call
  * `requirePermission` for that.
@@ -47,8 +52,23 @@ export async function requireUser() {
 export async function requireOrg(orgId: string): Promise<Membership> {
   const memberships = await getUserMemberships();
   const m = memberships.find((mb) => mb.organizationId === orgId);
-  if (!m) throw new TenantBoundaryError();
-  return m;
+  if (m) return m;
+
+  // Internal-staff fallback: if the user holds any active membership in
+  // an internal org, they may access any org. Specific permissions are
+  // still enforced by `requirePermission`.
+  const internal = memberships.find((mb) => mb.organizationType === "internal");
+  if (internal) {
+    return {
+      organizationId: orgId,
+      organizationName: "(cross-org as internal staff)",
+      organizationType: "client",
+      roleSlug: internal.roleSlug,
+      siteIds: [],
+    };
+  }
+
+  throw new TenantBoundaryError();
 }
 
 /**
