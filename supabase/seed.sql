@@ -313,6 +313,144 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
+-- Energy, compliance, DI demo seed
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE
+  v_meridian uuid := '11111111-1111-1111-1111-111111110001';
+  v_northline uuid := '11111111-1111-1111-1111-111111110002';
+  v_civiccare uuid := '11111111-1111-1111-1111-111111110003';
+
+  v_hotel_kitchen uuid := '22222222-2222-2222-2222-222222220101';
+  v_commissary    uuid := '22222222-2222-2222-2222-222222220102';
+  v_plant04       uuid := '22222222-2222-2222-2222-222222220201';
+  v_campus        uuid := '22222222-2222-2222-2222-222222220301';
+  v_hospital      uuid := '22222222-2222-2222-2222-222222220302';
+  v_cold_storage  uuid := '22222222-2222-2222-2222-222222220303';
+
+  v_meter_meri uuid := '66666666-6666-6666-6666-666666660001';
+  v_meter_nort uuid := '66666666-6666-6666-6666-666666660002';
+  v_meter_civi uuid := '66666666-6666-6666-6666-666666660003';
+BEGIN
+  -- Utility meters (one main meter per client for the demo)
+  INSERT INTO public.utility_meters (id, organization_id, site_id, asset_id, name, meter_code, kind, unit, serial_number) VALUES
+    (v_meter_meri, v_meridian,  v_commissary, NULL, 'Commissary main',  'M-001', 'electricity', 'kWh', 'SCHN-9000-A'),
+    (v_meter_nort, v_northline, v_plant04,    NULL, 'Plant 04 main',    'P-001', 'electricity', 'kWh', 'SCHN-9000-B'),
+    (v_meter_civi, v_civiccare, v_cold_storage, '33333333-3333-3333-3333-333333330023', 'Cold storage main', 'C-001', 'electricity', 'kWh', 'SCHN-9000-C')
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Tariff windows — same for everyone in EU
+  INSERT INTO public.tariff_windows (organization_id, site_id, name, start_local, end_local, rate_per_unit, currency, weekdays_only) VALUES
+    (v_meridian,  v_commissary, 'Off-peak',     '22:00', '07:00', 0.11, 'EUR', false),
+    (v_meridian,  v_commissary, 'Day',          '07:00', '17:00', 0.17, 'EUR', false),
+    (v_meridian,  v_commissary, 'Peak',         '17:00', '20:00', 0.42, 'EUR', true),
+    (v_northline, v_plant04,    'Off-peak',     '22:00', '07:00', 0.10, 'EUR', false),
+    (v_northline, v_plant04,    'Day',          '07:00', '17:00', 0.16, 'EUR', false),
+    (v_northline, v_plant04,    'Peak',         '17:00', '20:00', 0.39, 'EUR', true),
+    (v_civiccare, v_cold_storage, 'Day',        '06:00', '22:00', 0.09, 'EUR', false),
+    (v_civiccare, v_cold_storage, 'Night',      '22:00', '06:00', 0.06, 'EUR', false)
+  ON CONFLICT DO NOTHING;
+
+  -- Daily readings — last 7 days per meter
+  INSERT INTO public.utility_readings (organization_id, meter_id, period_start, period_end, consumption, cost, currency)
+  SELECT m.organization_id, m.id,
+    (current_date - g.i)::timestamptz,
+    (current_date - g.i + 1)::timestamptz,
+    420 + (random() * 80)::numeric,
+    65 + (random() * 18)::numeric,
+    'EUR'
+  FROM public.utility_meters m
+  CROSS JOIN generate_series(0, 6) AS g(i)
+  WHERE m.id IN (v_meter_meri, v_meter_nort, v_meter_civi)
+  ON CONFLICT DO NOTHING;
+
+  -- A couple of anomalies
+  INSERT INTO public.energy_anomalies (organization_id, meter_id, site_id, detected_at, kind, severity, description) VALUES
+    (v_meridian,  v_meter_meri, v_commissary, now() - interval '6 hours',  'spike',    'medium', 'Consumption spike at 11:20 — 1.8× baseline, no operational explanation logged.'),
+    (v_meridian,  v_meter_meri, v_commissary, now() - interval '2 days',   'tariff_overlap','high','Cold-room A holding setpoint into the peak tariff window 17:00-20:00 again.'),
+    (v_northline, v_meter_nort, v_plant04,    now() - interval '11 hours', 'drift',    'low',    'Slow upward drift on Line 2 background load over 9 days.'),
+    (v_civiccare, v_meter_civi, v_cold_storage, now() - interval '3 days', 'baseline_breach','medium','Cold-storage daytime baseline up 7% week-over-week.')
+  ON CONFLICT DO NOTHING;
+
+  -- Audit runs — recent + upcoming
+  INSERT INTO public.audit_runs (id, organization_id, site_id, framework_slug, name, scheduled_for, status, score, completed_at) VALUES
+    ('77777777-7777-7777-7777-777777770001', v_meridian, v_hotel_kitchen, 'fsms_iso22000', 'Q3 FSMS audit',         current_date - 14, 'passed',  92, now() - interval '14 days'),
+    ('77777777-7777-7777-7777-777777770002', v_meridian, v_commissary,    'haccp',         'HACCP weekly walk',     current_date - 2,  'flagged', 78, now() - interval '2 days'),
+    ('77777777-7777-7777-7777-777777770003', v_meridian, v_hotel_kitchen, 'fsms_iso22000', 'October FSMS audit',    current_date + 6,  'scheduled', NULL, NULL),
+    ('77777777-7777-7777-7777-777777770011', v_northline, v_plant04,      'iso9001',       'Quality system audit',  current_date - 3,  'passed',  88, now() - interval '3 days'),
+    ('77777777-7777-7777-7777-777777770012', v_northline, v_plant04,      'gmp',           'GMP line audit',        current_date + 4,  'scheduled', NULL, NULL),
+    ('77777777-7777-7777-7777-777777770021', v_civiccare, v_campus,       'fsms_iso22000', 'Campus FSMS audit',     current_date + 2,  'scheduled', NULL, NULL),
+    ('77777777-7777-7777-7777-777777770022', v_civiccare, v_hospital,     'haccp',         'Hospital cold-chain check', current_date - 1, 'flagged', 71, now() - interval '1 day')
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Findings
+  INSERT INTO public.audit_findings (organization_id, audit_run_id, severity, description) VALUES
+    (v_meridian,  '77777777-7777-7777-7777-777777770002', 'medium', 'Chilling SOP rows 47-49 unchecked; manager sign-off missing.'),
+    (v_meridian,  '77777777-7777-7777-7777-777777770002', 'low',    'Receiving log undated on 2 of 14 entries.'),
+    (v_civiccare, '77777777-7777-7777-7777-777777770022', 'high',   'Refrigeration rack 2 short-cycling not investigated.'),
+    (v_civiccare, '77777777-7777-7777-7777-777777770022', 'medium', '14:00 temperature log missing on cold room A.')
+  ON CONFLICT DO NOTHING;
+
+  -- Corrective actions
+  INSERT INTO public.corrective_actions (organization_id, site_id, title, description, status, due_at) VALUES
+    (v_meridian,  v_commissary, 'Close chilling SOP rows 47-49',         'Re-walk the chilling SOP with the shift lead.',  'in_progress', current_date + 2),
+    (v_meridian,  v_commissary, 'Restate receiving log discipline',      'Brief receiving team on dating every entry.',    'open',        current_date + 5),
+    (v_northline, v_plant04,    'Replace bearing assembly Line 2',       'Schedule for next changeover.',                  'open',        current_date + 4),
+    (v_civiccare, v_hospital,   'Investigate rack 2 short-cycling',      'Dispatch refrigeration technician.',             'in_progress', current_date + 1),
+    (v_civiccare, v_campus,     'Capture missing temperature log',       'QA officer sign-off + manual reading.',          'closed',      current_date - 1)
+  ON CONFLICT DO NOTHING;
+
+  -- Temperature logs — last 24h on cold rooms
+  INSERT INTO public.temperature_logs (organization_id, site_id, asset_id, recorded_at, temperature_c, setpoint_c, in_envelope)
+  SELECT v_civiccare, v_campus, '33333333-3333-3333-3333-333333330021',
+    now() - (g.i * interval '4 hours'),
+    -0.4 + (random() * 0.6 - 0.3)::numeric,
+    -0.5,
+    true
+  FROM generate_series(0, 5) AS g(i)
+  ON CONFLICT DO NOTHING;
+
+  -- One temperature breach
+  INSERT INTO public.temperature_logs (organization_id, site_id, asset_id, recorded_at, temperature_c, setpoint_c, in_envelope)
+  VALUES (v_civiccare, v_hospital, '33333333-3333-3333-3333-333333330022',
+    now() - interval '6 hours', 2.1, 0.0, false)
+  ON CONFLICT DO NOTHING;
+
+  -- Incidents
+  INSERT INTO public.incidents (organization_id, site_id, occurred_at, category, severity, title, description, status) VALUES
+    (v_meridian,  v_hotel_kitchen, now() - interval '3 days', 'equipment', 'low',    'Hood motor restart',           'Tripped breaker; restored within 4 minutes.', 'closed'),
+    (v_northline, v_plant04,       now() - interval '1 day',  'safety',    'medium', 'Near-miss on Line 2',          'Operator stepped into safety zone during changeover.', 'investigating'),
+    (v_civiccare, v_hospital,      now() - interval '6 hours','cold_chain','high',   'Rack 2 temperature breach',    'Setpoint exceeded by 2.1C for 38 minutes.',     'open')
+  ON CONFLICT DO NOTHING;
+
+  -- Metric snapshots — current month per client
+  INSERT INTO public.metric_snapshots (organization_id, site_id, metric_slug, period, period_start, value, delta_pct, target_value)
+  VALUES
+    (v_meridian,  NULL, 'revenue',           'month', date_trunc('month', current_date), 184500, 6.4,  175000),
+    (v_meridian,  NULL, 'cogs',              'month', date_trunc('month', current_date), 92300,  2.1,  95000),
+    (v_meridian,  NULL, 'contribution',      'month', date_trunc('month', current_date), 49.9,   1.8,  47.5),
+    (v_meridian,  NULL, 'downtime_hours',    'month', date_trunc('month', current_date), 11.2,  -23.0, 14.0),
+    (v_meridian,  NULL, 'energy_kwh',        'month', date_trunc('month', current_date), 31200, -4.1,  32500),
+    (v_meridian,  NULL, 'food_safety_score', 'month', date_trunc('month', current_date), 88,     2.0,  90),
+    (v_meridian,  NULL, 'agent_savings',     'month', date_trunc('month', current_date), 1820,   18.4, NULL),
+
+    (v_northline, NULL, 'revenue',           'month', date_trunc('month', current_date), 412000, 3.2,  420000),
+    (v_northline, NULL, 'oee',               'month', date_trunc('month', current_date), 76.4,   1.9,  80.0),
+    (v_northline, NULL, 'downtime_hours',    'month', date_trunc('month', current_date), 28.6,  -8.0,  32.0),
+    (v_northline, NULL, 'energy_kwh',        'month', date_trunc('month', current_date), 92400, -2.2,  95000),
+    (v_northline, NULL, 'emissions_scope2',  'month', date_trunc('month', current_date), 38400, -3.1,  40000),
+    (v_northline, NULL, 'agent_savings',     'month', date_trunc('month', current_date), 9200,   12.0, NULL),
+
+    (v_civiccare, NULL, 'revenue',           'month', date_trunc('month', current_date), 96000,  1.4,  100000),
+    (v_civiccare, NULL, 'food_safety_score', 'month', date_trunc('month', current_date), 82,    -1.0,  88),
+    (v_civiccare, NULL, 'downtime_hours',    'month', date_trunc('month', current_date), 6.4,   -12.0, 8.0),
+    (v_civiccare, NULL, 'energy_kwh',        'month', date_trunc('month', current_date), 21800,  1.4,  21500),
+    (v_civiccare, NULL, 'agent_savings',     'month', date_trunc('month', current_date), 1100,   25.6, NULL)
+  ON CONFLICT DO NOTHING;
+
+END $$;
+
+-- ---------------------------------------------------------------------------
 -- Print a summary so `supabase db reset` operators see what's available
 -- ---------------------------------------------------------------------------
 DO $$
