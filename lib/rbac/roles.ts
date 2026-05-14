@@ -35,9 +35,16 @@ export const CLIENT_ROLES = [
   "read_only_auditor_client",
 ] as const;
 
+export const PARTNER_ROLES = [
+  "partner_owner",
+  "partner_user",
+  "partner_viewer",
+] as const;
+
 export type InternalRoleSlug = (typeof INTERNAL_ROLES)[number];
 export type ClientRoleSlug = (typeof CLIENT_ROLES)[number];
-export type RoleSlug = InternalRoleSlug | ClientRoleSlug;
+export type PartnerRoleSlug = (typeof PARTNER_ROLES)[number];
+export type RoleSlug = InternalRoleSlug | ClientRoleSlug | PartnerRoleSlug;
 
 export function isInternalRole(slug: string): slug is InternalRoleSlug {
   return (INTERNAL_ROLES as readonly string[]).includes(slug);
@@ -45,4 +52,8 @@ export function isInternalRole(slug: string): slug is InternalRoleSlug {
 
 export function isClientRole(slug: string): slug is ClientRoleSlug {
   return (CLIENT_ROLES as readonly string[]).includes(slug);
+}
+
+export function isPartnerRole(slug: string): slug is PartnerRoleSlug {
+  return (PARTNER_ROLES as readonly string[]).includes(slug);
 }

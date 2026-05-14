@@ -340,7 +340,13 @@ export async function acceptInvite(
     .select("type")
     .eq("id", invite.organization_id)
     .maybeSingle();
-  redirect(orgRow?.type === "internal" ? "/admin" : "/portal");
+  redirect(
+    orgRow?.type === "internal"
+      ? "/admin"
+      : orgRow?.type === "partner"
+        ? "/partner"
+        : "/portal",
+  );
 }
 
 async function attachMembership(opts: {

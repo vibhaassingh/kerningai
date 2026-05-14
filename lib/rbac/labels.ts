@@ -34,4 +34,8 @@ export const ROLE_LABELS: Record<RoleSlug, string> = {
   finance_viewer: "Finance Viewer",
   it_admin: "IT Admin",
   read_only_auditor_client: "Read-only Auditor",
+  // partner
+  partner_owner: "Partner Owner",
+  partner_user: "Partner User",
+  partner_viewer: "Partner Viewer",
 };

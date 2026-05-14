@@ -78,7 +78,12 @@ BEGIN
       ('bbbbbbbb-bbbb-bbbb-bbbb-bbbb00000003'::uuid, 'cfo@meridian.example.com',                   'Priya Subramanian',           'executive_cfo',            '11111111-1111-1111-1111-111111110001'::uuid),
       ('cccccccc-cccc-cccc-cccc-cccc00000001'::uuid, 'maintenance@northline.example.com',          'Jonas Bekker',                'maintenance_engineer',     '11111111-1111-1111-1111-111111110002'::uuid),
       ('cccccccc-cccc-cccc-cccc-cccc00000002'::uuid, 'operator@northline.example.com',             'Leo Marais',                  'operator',                 '11111111-1111-1111-1111-111111110002'::uuid),
-      ('dddddddd-dddd-dddd-dddd-dddd00000001'::uuid, 'qa@civiccare.example.com',                   'Aditi Rao',                   'qa_compliance_officer',    '11111111-1111-1111-1111-111111110003'::uuid)
+      ('dddddddd-dddd-dddd-dddd-dddd00000001'::uuid, 'qa@civiccare.example.com',                   'Aditi Rao',                   'qa_compliance_officer',    '11111111-1111-1111-1111-111111110003'::uuid),
+      -- Saurabh Arora (client) — Refined Oil Distribution / C&F Operations
+      ('eeeeeeee-eeee-eeee-eeee-eeee00000001'::uuid, 'owner@saurabh-arora.example.com',            'Saurabh Arora',               'client_owner',             '22222222-2222-2222-2222-222222220002'::uuid),
+      ('eeeeeeee-eeee-eeee-eeee-eeee00000002'::uuid, 'cfo@saurabh-arora.example.com',              'Rohan Mehra',                 'executive_cfo',            '22222222-2222-2222-2222-222222220002'::uuid),
+      -- Avinash Group (partner referral)
+      ('ffffffff-ffff-ffff-ffff-ffff00000001'::uuid, 'owner@avinash.example.com',                  'Avinash Sharma',              'partner_owner',            '22222222-2222-2222-2222-222222220001'::uuid)
     ) AS t(id, email, full_name, role_slug, org_id)
   LOOP
     -- Insert auth.users (skip if email already exists)
@@ -458,8 +463,10 @@ BEGIN
   RAISE NOTICE '';
   RAISE NOTICE '================================================================';
   RAISE NOTICE 'Kerning AI dev seed loaded.';
-  RAISE NOTICE '  10 users, password: KerningSeed!2026';
-  RAISE NOTICE '  Super admin: super.admin@kerning.ooo';
+  RAISE NOTICE '  13 users, password: KerningSeed!2026';
+  RAISE NOTICE '  Super admin:    super.admin@kerning.ooo';
+  RAISE NOTICE '  Saurabh client: owner@saurabh-arora.example.com';
+  RAISE NOTICE '  Avinash partner: owner@avinash.example.com';
   RAISE NOTICE '  Client owner: owner@meridian.example.com';
   RAISE NOTICE '  Operator:     operator@northline.example.com';
   RAISE NOTICE '================================================================';

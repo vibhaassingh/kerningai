@@ -25,6 +25,7 @@ const PORTAL_NAV: SidebarSection[] = [
       { number: "06", href: "/portal/compliance", label: "Compliance" },
       { number: "07", href: "/portal/decision-intelligence", label: "Decision Intelligence" },
       { number: "08", href: "/portal/ontology", label: "Ontology Explorer" },
+      { number: "09", href: "/portal/projects", label: "Projects & Workflow" },
     ],
   },
   {

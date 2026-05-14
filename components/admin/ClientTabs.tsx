@@ -11,6 +11,7 @@ interface ClientTabsProps {
 
 const TABS = [
   { key: "overview", label: "Overview" },
+  { key: "projects", label: "Projects" },
   { key: "sites", label: "Sites" },
   { key: "users", label: "People" },
   { key: "modules", label: "Modules" },

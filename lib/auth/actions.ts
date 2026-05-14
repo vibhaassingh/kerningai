@@ -121,7 +121,8 @@ export async function signInWithPassword(
   // If the caller passed a returnTo, honor it (validated against the
   // allowlist). Otherwise route the user to their primary shell based
   // on org type. Internal staff → /admin, client users → /portal,
-  // anyone with no active membership → /accept-invite to surface that.
+  // partner users → /partner, anyone with no active membership →
+  // /accept-invite to surface that.
   let target = parsed.data.returnTo
     ? safeRedirectTarget(parsed.data.returnTo)
     : null;
@@ -133,16 +134,21 @@ export async function signInWithPassword(
       .eq("user_id", data.user.id)
       .eq("status", "active");
 
-    type MembershipRow = { organizations: { type: "internal" | "client" } };
+    type MembershipRow = {
+      organizations: { type: "internal" | "client" | "partner" };
+    };
     const rows = (memberships ?? []) as unknown as MembershipRow[];
     const hasInternal = rows.some((m) => m.organizations.type === "internal");
     const hasClient = rows.some((m) => m.organizations.type === "client");
+    const hasPartner = rows.some((m) => m.organizations.type === "partner");
 
     target = hasInternal
       ? "/admin"
       : hasClient
         ? "/portal"
-        : "/accept-invite";
+        : hasPartner
+          ? "/partner"
+          : "/accept-invite";
   }
 
   redirect(target);

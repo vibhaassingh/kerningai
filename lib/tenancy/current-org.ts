@@ -10,7 +10,7 @@ import type { RoleSlug } from "@/lib/rbac/roles";
 export interface Membership {
   organizationId: string;
   organizationName: string;
-  organizationType: "internal" | "client";
+  organizationType: "internal" | "client" | "partner";
   roleSlug: RoleSlug;
   siteIds: string[];
 }
@@ -53,7 +53,7 @@ interface RawMembership {
   organizations: {
     id: string;
     name: string;
-    type: "internal" | "client";
+    type: "internal" | "client" | "partner";
   };
 }
 

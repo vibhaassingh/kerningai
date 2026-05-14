@@ -21,7 +21,7 @@ export interface SidebarSection {
 interface SidebarNavProps {
   sections: SidebarSection[];
   /** Where the sidebar nav lives. Drives the active highlight prefix-match. */
-  rootPath: "/admin" | "/portal";
+  rootPath: "/admin" | "/portal" | "/partner";
 }
 
 export function SidebarNav({ sections, rootPath }: SidebarNavProps) {

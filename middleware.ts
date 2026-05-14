@@ -16,7 +16,9 @@ export async function middleware(request: NextRequest) {
   const { response, user, supabaseConfigured } = await updateSession(request);
 
   const isAuthedRoute =
-    pathname.startsWith("/admin") || pathname.startsWith("/portal");
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/portal") ||
+    pathname.startsWith("/partner");
 
   if (isAuthedRoute) {
     if (!supabaseConfigured) {

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 
-import { getAdminDocumentDownloadUrl } from "@/lib/admin/documents";
+import { getAdminDocumentDownloadUrl } from "@/lib/admin/document-actions";
 
 interface Props {
   documentId: string;

@@ -68,6 +68,20 @@ export const PERMISSIONS = [
   "manage_feature_flags",
   // impersonation
   "impersonate_client_user",
+  // projects
+  "view_projects",
+  "manage_projects",
+  // workflow canvas
+  "view_workflow_canvas",
+  "manage_workflow_canvas",
+  "share_workflow_canvas",
+  "manage_workflow_versions",
+  "comment_on_workflow_canvas",
+  // partner portal
+  "view_partner_dashboard",
+  "submit_partner_lead",
+  "view_partner_projects",
+  "view_partner_workflow_summary",
 ] as const;
 
 export type PermissionSlug = (typeof PERMISSIONS)[number];
