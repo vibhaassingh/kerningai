@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { GenerateBlueprintButton } from "@/components/admin/GenerateBlueprintButton";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { formatRelative } from "@/lib/admin/format";
+import { getLatestBlueprintForSubmission } from "@/lib/admin/blueprints";
 import {
   getSubmissionDetail,
   type SubmissionAnswer,
@@ -23,8 +25,15 @@ export default async function SubmissionDetailPage({
   if (!canView) redirect("/admin");
 
   const { submissionId } = await params;
-  const submission = await getSubmissionDetail(submissionId);
+  const [submission, latestBlueprint] = await Promise.all([
+    getSubmissionDetail(submissionId),
+    getLatestBlueprintForSubmission(submissionId),
+  ]);
   if (!submission) notFound();
+  const canGenerate =
+    submission.status !== "draft" &&
+    ((await hasPermissionAny("manage_questionnaires")) ||
+      (await hasPermissionAny("approve_solution_blueprints")));
 
   return (
     <div className="space-y-12">
@@ -53,6 +62,36 @@ export default async function SubmissionDetailPage({
           {submission.submitter_role && ` · ${submission.submitter_role}`}
         </p>
       </header>
+
+      {canGenerate && (
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-hairline bg-bg-elev/30 px-7 py-5">
+          <div className="space-y-1">
+            <Eyebrow number="00">Blueprint</Eyebrow>
+            {latestBlueprint ? (
+              <p className="text-[14px] text-text">
+                v{latestBlueprint.version} ·{" "}
+                <Link
+                  href={`/admin/solution-blueprints/${latestBlueprint.id}`}
+                  className="text-[var(--color-signal)] hover:underline"
+                >
+                  Open ↗
+                </Link>
+                <span className="ml-2 text-[var(--color-text-faded)]">
+                  {latestBlueprint.status.replace(/_/g, " ")}
+                </span>
+              </p>
+            ) : (
+              <p className="text-[14px] text-[var(--color-text-faded)]">
+                No blueprint yet — run the generator to produce one.
+              </p>
+            )}
+          </div>
+          <GenerateBlueprintButton
+            submissionId={submission.id}
+            hasExisting={!!latestBlueprint}
+          />
+        </section>
+      )}
 
       <section className="grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
         <Stat number="01" label="Status" value={submission.status.replace(/_/g, " ")} />
