@@ -7,7 +7,9 @@ import {
   FROM_EMAIL,
   CONTACT_RECIPIENTS,
   SITE_URL,
+  SUPABASE_CONFIGURED,
 } from "@/lib/env";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
 
@@ -20,6 +22,8 @@ const ContactSchema = z.object({
   /** Honeypot — silently dropped if filled by a bot. */
   website: z.string().optional(),
 });
+
+type ContactPayload = z.infer<typeof ContactSchema>;
 
 export async function POST(req: Request) {
   let payload: unknown;
@@ -40,12 +44,32 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true }, { status: 200 });
   }
 
+  const headers = {
+    ip:
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      req.headers.get("x-real-ip") ??
+      null,
+    userAgent: req.headers.get("user-agent") ?? null,
+  };
+
+  // CRM persistence — record the contact submission + create a lead row
+  // when Supabase is configured. Best-effort: a DB failure here does not
+  // block the email send.
+  let leadId: string | null = null;
+  if (SUPABASE_CONFIGURED) {
+    leadId = await recordContactAsLead(parsed.data, headers).catch((err) => {
+      console.error("[contact] CRM write failed", err);
+      return null;
+    });
+  }
+
   if (!EMAIL_CONFIGURED) {
     console.log(
       "[contact] submission received (email backend not configured):",
       parsed.data,
+      leadId ? `lead=${leadId}` : "",
     );
-    return NextResponse.json({ ok: true, dev: true }, { status: 200 });
+    return NextResponse.json({ ok: true, dev: true, leadId }, { status: 200 });
   }
 
   try {
@@ -69,7 +93,8 @@ export async function POST(req: Request) {
         "",
         "—",
         `Sent from ${SITE_URL}/contact`,
-      ].join("\n"),
+        leadId ? `Lead: ${SITE_URL}/admin/leads/${leadId}` : "",
+      ].filter(Boolean).join("\n"),
     });
 
     if (error) {
@@ -83,9 +108,73 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, leadId });
   } catch (err) {
     console.error("[contact] resend error", err);
     return NextResponse.json({ error: "Send failed" }, { status: 500 });
   }
+}
+
+/**
+ * Records the contact submission + an attached lead row. Returns the lead id
+ * so the admin email body can deep-link into the CRM.
+ *
+ * Uses service role since this is an unauthenticated public form.
+ */
+async function recordContactAsLead(
+  data: ContactPayload,
+  headers: { ip: string | null; userAgent: string | null },
+): Promise<string | null> {
+  const service = createServiceClient();
+
+  // Create the lead first so the submission can FK to it.
+  const { data: lead, error: leadError } = await service
+    .from("leads")
+    .insert({
+      source: "contact_form",
+      status: "new",
+      company_name: data.company ?? null,
+      contact_name: data.name,
+      contact_email: data.email,
+      contact_role: data.role ?? null,
+      intent_summary: data.message,
+      raw_payload: data,
+    })
+    .select("id")
+    .single();
+
+  if (leadError || !lead) {
+    console.error("[contact] could not insert lead", leadError);
+    return null;
+  }
+
+  await service.from("contact_form_submissions").insert({
+    lead_id: lead.id,
+    contact_name: data.name,
+    contact_email: data.email,
+    company: data.company ?? null,
+    role: data.role ?? null,
+    message: data.message,
+    raw_payload: data,
+    ip: headers.ip,
+    user_agent: headers.userAgent,
+  });
+
+  await service.from("lead_activities").insert({
+    lead_id: lead.id,
+    kind: "note",
+    body: "Submitted via /contact form.",
+    payload: { source: "contact_form" },
+  });
+
+  await service.from("audit_logs").insert({
+    actor_id: null,
+    organization_id: null,
+    action: "lead.created",
+    resource_type: "lead",
+    resource_id: lead.id,
+    after: { source: "contact_form", email: data.email },
+  });
+
+  return lead.id;
 }
