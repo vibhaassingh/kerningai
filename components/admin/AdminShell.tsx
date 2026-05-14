@@ -27,12 +27,19 @@ const ADMIN_NAV: SidebarSection[] = [
     ],
   },
   {
-    title: "03 — Govern",
+    title: "03 — Serve",
     items: [
-      { number: "08", href: "/admin/security/users", label: "Users & Roles" },
-      { number: "09", href: "/admin/security/audit-log", label: "Audit Log" },
-      { number: "10", href: "/admin/system-health", label: "System Health", disabled: true, badge: "Phase 2" },
-      { number: "11", href: "/admin/settings/security", label: "Security Settings" },
+      { number: "08", href: "/admin/support", label: "Support" },
+      { number: "09", href: "/admin/documents", label: "Documents" },
+    ],
+  },
+  {
+    title: "04 — Govern",
+    items: [
+      { number: "10", href: "/admin/security/users", label: "Users & Roles" },
+      { number: "11", href: "/admin/security/audit-log", label: "Audit Log" },
+      { number: "12", href: "/admin/system-health", label: "System Health", disabled: true, badge: "Phase 2" },
+      { number: "13", href: "/admin/settings/security", label: "Security Settings" },
     ],
   },
 ];
