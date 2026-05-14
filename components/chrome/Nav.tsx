@@ -85,6 +85,24 @@ export function Nav() {
             })}
           </ul>
 
+          <span
+            aria-hidden
+            className="mx-1 hidden h-4 w-px bg-[var(--color-text)]/15 md:inline-block"
+          />
+
+          <Link
+            href="/login"
+            aria-label="Sign in to the workspace"
+            className={cn(
+              "hidden md:inline-flex items-center gap-1 rounded-full",
+              "px-3 py-2 text-[0.85rem] opacity-65",
+              "transition-[opacity,background-color] duration-300 hover:opacity-100 hover:bg-[var(--color-text)]/10",
+            )}
+          >
+            <span>Sign in</span>
+            <span aria-hidden className="text-[0.9em] leading-none">↗</span>
+          </Link>
+
           <div className="ml-1 hidden md:block">
             <LiquidPill
               href="/contact"
@@ -137,6 +155,16 @@ export function Nav() {
                 </Link>
               </li>
             ))}
+            <li className="mt-1 border-t border-[var(--color-text)]/10 pt-2">
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-between gap-2 rounded-2xl px-4 py-3 text-[0.95rem] opacity-70 hover:bg-[var(--color-text)]/10 hover:opacity-100"
+              >
+                <span>Sign in</span>
+                <span aria-hidden className="text-[0.9em] opacity-80">↗</span>
+              </Link>
+            </li>
             <li>
               <Link
                 href="/contact"
