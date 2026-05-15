@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 
+import { OrgSwitcher } from "@/components/chrome/portal/OrgSwitcher";
 import { PortalBrand } from "@/components/chrome/portal/PortalBrand";
 import { SidebarNav, type SidebarSection } from "@/components/chrome/portal/SidebarNav";
 import { TopBar } from "@/components/chrome/portal/TopBar";
 import { ROLE_LABELS } from "@/lib/rbac/labels";
 import { createClient } from "@/lib/supabase/server";
-import { getUserMemberships } from "@/lib/tenancy/current-org";
+import { getCurrentMembership, getUserMemberships } from "@/lib/tenancy/current-org";
 
 const PARTNER_NAV: SidebarSection[] = [
   {
@@ -49,6 +50,7 @@ export async function PartnerShell({ children }: { children: ReactNode }) {
     if (client) redirect("/portal");
     redirect("/accept-invite");
   }
+  const current = (await getCurrentMembership()) ?? partner;
 
   const { data: profile } = await supabase
     .from("app_users")
@@ -69,9 +71,15 @@ export async function PartnerShell({ children }: { children: ReactNode }) {
         <TopBar
           fullName={profile.full_name ?? profile.email}
           email={profile.email}
-          roleLabel={ROLE_LABELS[partner.roleSlug] ?? partner.roleSlug}
-          organizationLabel={partner.organizationName}
+          roleLabel={ROLE_LABELS[current.roleSlug] ?? current.roleSlug}
+          organizationLabel={current.organizationName}
           settingsHref="/partner/settings/security"
+          switcher={
+            <OrgSwitcher
+              memberships={memberships}
+              currentOrgId={current.organizationId}
+            />
+          }
         />
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-6xl px-8 py-10">{children}</div>

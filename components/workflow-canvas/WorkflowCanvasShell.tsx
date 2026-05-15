@@ -14,7 +14,14 @@ import {
   type Node,
   type NodeChange,
 } from "@xyflow/react";
-import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import { toPng } from "html-to-image";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import { saveCanvas } from "@/lib/workflow-canvas/canvas-actions";
 import type {
@@ -45,12 +52,23 @@ const PHASE_LABEL: Record<CanvasNodePhase, string> = {
   module_mapping: "Module Mapping",
 };
 
-const PHASE_OPTIONS: Array<{ value: CanvasNodePhase | "all"; label: string }> = [
+type ViewMode = "all" | CanvasNodePhase | "before_erp" | "after_erp";
+
+const VIEW_OPTIONS: Array<{ value: ViewMode; label: string }> = [
   { value: "all", label: "Combined" },
-  { value: "current_manual", label: "Current Manual" },
-  { value: "proposed_erp", label: "Proposed ERP" },
-  { value: "erp_ai", label: "ERP + AI" },
+  { value: "before_erp", label: "Before ERP" },
+  { value: "after_erp", label: "After ERP + AI" },
+  { value: "current_manual", label: "— Current Manual" },
+  { value: "proposed_erp", label: "— Proposed ERP" },
+  { value: "erp_ai", label: "— ERP + AI" },
 ];
+
+function viewToPhases(view: ViewMode): Set<CanvasNodePhase> | "all" {
+  if (view === "all") return "all";
+  if (view === "before_erp") return new Set<CanvasNodePhase>(["current_manual"]);
+  if (view === "after_erp") return new Set<CanvasNodePhase>(["proposed_erp", "erp_ai"]);
+  return new Set<CanvasNodePhase>([view]);
+}
 
 function toReactFlowNode(
   n: WorkflowCanvasNode,
@@ -81,7 +99,17 @@ function toReactFlowEdge(e: WorkflowCanvasEdge): Edge {
     source: e.source_node_key,
     target: e.target_node_key,
     label: e.label ?? undefined,
-    style: { stroke: baseColor, strokeDasharray: dashed ? "4 4" : undefined },
+    labelStyle: e.label
+      ? { fill: "var(--color-text-faded)", fontSize: 10, fontFamily: "var(--font-mono)" }
+      : undefined,
+    labelBgStyle: e.label
+      ? { fill: "var(--color-bg-elev)", fillOpacity: 0.92 }
+      : undefined,
+    style: {
+      stroke: baseColor,
+      strokeDasharray: dashed ? "4 4" : undefined,
+      strokeWidth: 1.4,
+    },
     animated: e.edge_type === "ai_assisted",
   };
 }
@@ -127,11 +155,14 @@ function InnerCanvas(props: WorkflowCanvasShellProps) {
     projectId,
   } = props;
 
-  const [phaseFilter, setPhaseFilter] = useState<CanvasNodePhase | "all">("all");
+  const [view, setView] = useState<ViewMode>("all");
   const [openDetailKey, setOpenDetailKey] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleOpenDetail = useCallback((key: string) => {
     setOpenDetailKey(key);
@@ -150,9 +181,10 @@ function InnerCanvas(props: WorkflowCanvasShellProps) {
   const [edges, setEdges] = useState<Edge[]>(allEdges);
 
   const visibleNodes = useMemo(() => {
-    if (phaseFilter === "all") return nodes;
-    return nodes.filter((n) => n.data.payload.phase === phaseFilter);
-  }, [nodes, phaseFilter]);
+    const phaseSet = viewToPhases(view);
+    if (phaseSet === "all") return nodes;
+    return nodes.filter((n) => phaseSet.has(n.data.payload.phase));
+  }, [nodes, view]);
 
   const visibleNodeIds = useMemo(
     () => new Set(visibleNodes.map((n) => n.id)),
@@ -221,36 +253,112 @@ function InnerCanvas(props: WorkflowCanvasShellProps) {
     }, 1500);
   }, [canvas, nodes, edges, organizationId, projectId, isEditable, initialEdges]);
 
-  // Trigger autosave whenever nodes/edges change.
   const onNodeDragStop = useCallback(() => triggerAutosave(), [triggerAutosave]);
+
+  const handleExportPng = useCallback(async () => {
+    if (!containerRef.current) return;
+    setIsExporting(true);
+    try {
+      // Find the actual ReactFlow viewport element to capture (not the toolbar).
+      const viewport = containerRef.current.querySelector(
+        ".react-flow__viewport",
+      ) as HTMLElement | null;
+      const target = viewport?.parentElement ?? containerRef.current;
+      const dataUrl = await toPng(target, {
+        backgroundColor: "#0c0c0e",
+        pixelRatio: 2,
+        cacheBust: true,
+        filter: (node) => {
+          // Skip the minimap and controls in the export.
+          const className =
+            (node as HTMLElement).className?.toString?.() ?? "";
+          return (
+            !className.includes("react-flow__minimap") &&
+            !className.includes("react-flow__controls")
+          );
+        },
+      });
+      const link = document.createElement("a");
+      link.download = `${canvas.title.toLowerCase().replace(/\s+/g, "-")}-${view}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      setError(`PNG export failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [canvas.title, view]);
+
+  const handleToggleFullscreen = useCallback(async () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      try {
+        await containerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } catch {
+        // Some browsers reject fullscreen requests outside user-gesture
+        // contexts — silently no-op.
+      }
+    } else {
+      await document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  }, []);
 
   const openDetailNode = openDetailKey
     ? initialNodes.find((n) => n.node_key === openDetailKey) ?? null
     : null;
 
+  const heightClass = isFullscreen
+    ? "h-screen"
+    : mode === "present"
+      ? "h-[calc(100dvh-160px)]"
+      : "h-[calc(100dvh-220px)]";
+
   return (
-    <div className="relative h-[calc(100dvh-220px)] min-h-[600px] overflow-hidden rounded-2xl border border-hairline bg-bg-elev/40">
+    <div
+      ref={containerRef}
+      className={`relative ${heightClass} min-h-[600px] overflow-hidden rounded-2xl border border-hairline bg-bg-elev/40`}
+    >
       {/* Toolbar */}
       <div className="absolute left-0 right-0 top-0 z-10 flex flex-wrap items-center gap-3 border-b border-hairline bg-bg-elev/80 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-2">
           <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
-            Phase
+            View
           </span>
           <select
-            value={phaseFilter}
-            onChange={(ev) =>
-              setPhaseFilter(ev.target.value as CanvasNodePhase | "all")
-            }
+            value={view}
+            onChange={(ev) => setView(ev.target.value as ViewMode)}
             className="rounded-md border border-hairline bg-bg px-2 py-1 text-[12px] text-text"
-            aria-label="Phase filter"
+            aria-label="Canvas view"
           >
-            {PHASE_OPTIONS.map((o) => (
+            {VIEW_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
             ))}
           </select>
         </div>
+
+        {mode !== "present" && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportPng}
+              disabled={isExporting}
+              className="rounded-full border border-hairline px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-faded)] hover:border-[var(--color-signal)] hover:text-[var(--color-signal)] disabled:opacity-50"
+            >
+              {isExporting ? "Exporting…" : "Export PNG"}
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleFullscreen}
+              className="rounded-full border border-hairline px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-faded)] hover:border-[var(--color-signal)] hover:text-[var(--color-signal)]"
+            >
+              {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            </button>
+          </div>
+        )}
 
         <div className="ml-auto flex items-center gap-3 text-[11px] text-[var(--color-text-faded)]">
           {error && (
@@ -287,7 +395,9 @@ function InnerCanvas(props: WorkflowCanvasShellProps) {
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="var(--color-hairline)" />
-          {mode !== "present" && <Controls position="bottom-right" showInteractive={isEditable} />}
+          {mode !== "present" && (
+            <Controls position="bottom-right" showInteractive={isEditable} />
+          )}
           {mode !== "present" && (
             <MiniMap
               position="top-right"
@@ -317,11 +427,18 @@ function InnerCanvas(props: WorkflowCanvasShellProps) {
         </ReactFlow>
       </div>
 
-      {/* Phase legend */}
-      {phaseFilter !== "all" && (
+      {/* View badge */}
+      {view !== "all" && (
         <div className="absolute bottom-4 left-4 z-10 rounded-lg border border-hairline bg-bg-elev/90 px-3 py-2 backdrop-blur">
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-signal)]">
-            {PHASE_LABEL[phaseFilter]}
+            {view === "before_erp"
+              ? "Before ERP — current manual workflow"
+              : view === "after_erp"
+                ? "After ERP + AI — proposed system + AI overlay"
+                : PHASE_LABEL[view]}
+          </p>
+          <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+            {visibleNodes.length} nodes · {visibleEdges.length} edges
           </p>
         </div>
       )}

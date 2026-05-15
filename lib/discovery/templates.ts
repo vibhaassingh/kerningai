@@ -11,8 +11,20 @@ export type QuestionKind =
   | "boolean"
   | "number"
   | "currency"
-  | "date";
-// Remaining kinds (file, integration_selector, …) ship in Phase 3b.
+  | "date"
+  | "file"
+  | "site_count"
+  | "user_count"
+  | "integration_selector"
+  | "priority_ranking"
+  | "matrix"
+  | "repeating_group"
+  | "consent"
+  | "contact_details"
+  | "deployment_preference"
+  | "data_sensitivity"
+  | "budget_range"
+  | "timeline_expectation";
 
 export interface QuestionnaireOption {
   value: string;

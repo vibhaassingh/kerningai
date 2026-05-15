@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 
+import { OrgSwitcher } from "@/components/chrome/portal/OrgSwitcher";
 import { PortalBrand } from "@/components/chrome/portal/PortalBrand";
 import { SidebarNav, type SidebarSection } from "@/components/chrome/portal/SidebarNav";
 import { TopBar } from "@/components/chrome/portal/TopBar";
 import { ROLE_LABELS } from "@/lib/rbac/labels";
 import { createClient } from "@/lib/supabase/server";
-import { getUserMemberships } from "@/lib/tenancy/current-org";
+import { getCurrentMembership, getUserMemberships } from "@/lib/tenancy/current-org";
 
 const PORTAL_NAV: SidebarSection[] = [
   {
@@ -58,8 +59,9 @@ export async function ClientShell({ children }: { children: ReactNode }) {
 
   // Prefer the first client org. Internal-only users land here too if they
   // navigate directly; surface a hint by showing whichever org they have.
-  const primary =
+  const fallback =
     memberships.find((m) => m.organizationType === "client") ?? memberships[0];
+  const primary = (await getCurrentMembership()) ?? fallback;
 
   const { data: profile } = await supabase
     .from("app_users")
@@ -83,6 +85,12 @@ export async function ClientShell({ children }: { children: ReactNode }) {
           roleLabel={ROLE_LABELS[primary.roleSlug] ?? primary.roleSlug}
           organizationLabel={primary.organizationName}
           settingsHref="/portal/settings/security"
+          switcher={
+            <OrgSwitcher
+              memberships={memberships}
+              currentOrgId={primary.organizationId}
+            />
+          }
         />
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-6xl px-8 py-10">{children}</div>

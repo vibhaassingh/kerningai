@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 
+import { OrgSwitcher } from "@/components/chrome/portal/OrgSwitcher";
 import { PortalBrand } from "@/components/chrome/portal/PortalBrand";
 import { SidebarNav, type SidebarSection } from "@/components/chrome/portal/SidebarNav";
 import { TopBar } from "@/components/chrome/portal/TopBar";
 import { ROLE_LABELS } from "@/lib/rbac/labels";
 import { createClient } from "@/lib/supabase/server";
-import { getUserMemberships } from "@/lib/tenancy/current-org";
+import { getCurrentMembership, getUserMemberships } from "@/lib/tenancy/current-org";
 
 const ADMIN_NAV: SidebarSection[] = [
   {
@@ -57,6 +58,7 @@ export async function AdminShell({ children }: { children: ReactNode }) {
     // Authenticated but not internal staff — bounce to client portal.
     redirect("/portal");
   }
+  const current = (await getCurrentMembership()) ?? internal;
 
   // Load profile basics.
   const { data: profile } = await supabase
@@ -78,9 +80,15 @@ export async function AdminShell({ children }: { children: ReactNode }) {
         <TopBar
           fullName={profile.full_name ?? profile.email}
           email={profile.email}
-          roleLabel={ROLE_LABELS[internal.roleSlug] ?? internal.roleSlug}
-          organizationLabel={internal.organizationName}
+          roleLabel={ROLE_LABELS[current.roleSlug] ?? current.roleSlug}
+          organizationLabel={current.organizationName}
           settingsHref="/admin/settings/security"
+          switcher={
+            <OrgSwitcher
+              memberships={memberships}
+              currentOrgId={current.organizationId}
+            />
+          }
         />
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-6xl px-8 py-10">{children}</div>

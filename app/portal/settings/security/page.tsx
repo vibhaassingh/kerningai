@@ -1,11 +1,17 @@
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 import { ConnectedAccountsCard } from "@/components/auth/ConnectedAccountsCard";
+import { MfaEnrolCard } from "@/components/auth/MfaEnrolCard";
+import { requireUser } from "@/lib/auth/require";
 import { GOOGLE_OAUTH_CONFIGURED } from "@/lib/env";
+import { getCurrentMfaFactor } from "@/lib/mfa/mfa";
 
 export const metadata = { title: "Security" };
+export const dynamic = "force-dynamic";
 
-export default function PortalSecuritySettingsPage() {
+export default async function PortalSecuritySettingsPage() {
+  const user = await requireUser();
+  const factor = await getCurrentMfaFactor(user.id);
   return (
     <div className="space-y-12">
       <header className="space-y-4">
@@ -20,6 +26,7 @@ export default function PortalSecuritySettingsPage() {
       </header>
 
       <ChangePasswordForm />
+      <MfaEnrolCard current={factor} />
       <ConnectedAccountsCard googleEnabled={GOOGLE_OAUTH_CONFIGURED} />
     </div>
   );

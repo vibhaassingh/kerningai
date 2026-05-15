@@ -57,10 +57,13 @@ interface RawMembership {
   };
 }
 
+const SELECTED_ORG_COOKIE = "kerning_selected_org";
+
 /**
  * Returns the membership for the org the user is currently working in.
- * Resolution order: explicit `orgId` argument → cookie → user's
- * `default_org_id` → first active membership.
+ * Resolution order: explicit `orgId` argument → `kerning_selected_org`
+ * cookie set by the org switcher → user's `default_org_id` from
+ * app_users → first active membership.
  */
 export async function getCurrentMembership(
   orgId?: string,
@@ -72,6 +75,32 @@ export async function getCurrentMembership(
     return memberships.find((m) => m.organizationId === orgId) ?? null;
   }
 
-  // TODO Phase 2: read selected_org_id from a cookie set by the org switcher.
+  // Cookie set by switchOrg server action.
+  const { cookies } = await import("next/headers");
+  const cookieStore = await cookies();
+  const selected = cookieStore.get(SELECTED_ORG_COOKIE)?.value;
+  if (selected) {
+    const fromCookie = memberships.find((m) => m.organizationId === selected);
+    if (fromCookie) return fromCookie;
+  }
+
+  // app_users.default_org_id fallback.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase
+      .from("app_users")
+      .select("default_org_id")
+      .eq("id", user.id)
+      .maybeSingle();
+    const def = (profile as { default_org_id: string | null } | null)?.default_org_id;
+    if (def) {
+      const fromDefault = memberships.find((m) => m.organizationId === def);
+      if (fromDefault) return fromDefault;
+    }
+  }
+
   return memberships[0];
 }
