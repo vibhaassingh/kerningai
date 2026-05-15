@@ -23,7 +23,7 @@ const ADMIN_NAV: SidebarSection[] = [
     title: "02 — Build",
     items: [
       { number: "05", href: "/admin/cms", label: "CMS", disabled: true, badge: "Phase 2" },
-      { number: "06", href: "/admin/deployments", label: "Deployments", disabled: true, badge: "Phase 2" },
+      { number: "06", href: "/admin/deployments", label: "Deployments" },
       { number: "07", href: "/admin/integrations", label: "Integrations", disabled: true, badge: "Phase 4" },
     ],
   },
@@ -39,7 +39,7 @@ const ADMIN_NAV: SidebarSection[] = [
     items: [
       { number: "10", href: "/admin/security/users", label: "Users & Roles" },
       { number: "11", href: "/admin/security/audit-log", label: "Audit Log" },
-      { number: "12", href: "/admin/system-health", label: "System Health", disabled: true, badge: "Phase 2" },
+      { number: "12", href: "/admin/system-health", label: "System Health" },
       { number: "13", href: "/admin/settings/security", label: "Security Settings" },
     ],
   },
