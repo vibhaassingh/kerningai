@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { MaskedReveal } from "@/components/primitives/MaskedReveal";
-import { getAllInsights } from "@/lib/mdx";
+import { getResolvedInsights } from "@/lib/cms/resolver";
 import { CTA } from "@/components/sections/home/CTA";
 
 export const metadata: Metadata = {
@@ -11,8 +11,11 @@ export const metadata: Metadata = {
     "Field notes from the operating layer — practical AI for hospitality and beyond.",
 };
 
+// ISR: code MDX stays static; DB (CMS) posts refresh every 5 minutes.
+export const revalidate = 300;
+
 export default async function InsightsIndexPage() {
-  const posts = await getAllInsights();
+  const posts = await getResolvedInsights();
 
   return (
     <>
