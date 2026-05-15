@@ -25,7 +25,7 @@ const ADMIN_NAV: SidebarSection[] = [
     items: [
       { number: "05", href: "/admin/cms", label: "CMS" },
       { number: "06", href: "/admin/deployments", label: "Deployments" },
-      { number: "07", href: "/admin/integrations", label: "Integrations", disabled: true, badge: "Phase 4" },
+      { number: "07", href: "/admin/integrations", label: "Integrations" },
     ],
   },
   {

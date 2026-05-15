@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { CreateLeadForm } from "@/components/admin/CreateLeadForm";
 import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { hasPermissionAny } from "@/lib/auth/require";
@@ -19,6 +20,7 @@ export default async function LeadsListPage() {
   if (!canView) redirect("/admin");
 
   const [leads, stages] = await Promise.all([listLeads(), listPipelineStages()]);
+  const canManage = await hasPermissionAny("manage_leads");
 
   const stageMap = new Map(stages.map((s) => [s.slug, s]));
   const stageName = (slug: string) => stageMap.get(slug)?.name ?? slug;
@@ -151,11 +153,29 @@ export default async function LeadsListPage() {
         />
       </section>
 
+      {canManage && (
+        <section className="rounded-2xl border border-hairline bg-bg-elev/30 p-8">
+          <Eyebrow number="06">Add a lead</Eyebrow>
+          <h2 className="mt-3 text-display text-[clamp(1.4rem,3vw,1.8rem)] font-medium tracking-[-0.02em]">
+            Enter a prospect{" "}
+            <span className="italic text-[var(--color-signal)]">manually</span>.
+          </h2>
+          <p className="mt-2 text-[14px] text-[var(--color-text-faded)]">
+            For outbound, referrals, or anything that didn&apos;t come
+            through the contact form. It lands in the pipeline at the first
+            stage; open it to qualify or convert.
+          </p>
+          <div className="mt-8">
+            <CreateLeadForm />
+          </div>
+        </section>
+      )}
+
       <DataTable
         rows={leads}
         columns={columns}
         rowKey={(r) => r.id}
-        emptyState={`No leads yet. Submissions from /contact will appear here automatically. (Pipeline stages available: ${stages.length})`}
+        emptyState={`No leads yet. Submissions from /contact appear here automatically, or add one manually above. (Pipeline stages available: ${stages.length})`}
         caption={
           <span className="font-mono">
             {leads.length} lead{leads.length === 1 ? "" : "s"} · {stageName("new")} default

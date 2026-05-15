@@ -109,6 +109,99 @@ export async function addLeadNote(
   return { ok: true };
 }
 
+const createLeadSchema = z.object({
+  contactName: z.string().min(2, "Contact name is required.").max(160),
+  contactEmail: z.string().email("Enter a valid email."),
+  companyName: z.string().max(200).optional().or(z.literal("")),
+  contactRole: z.string().max(120).optional().or(z.literal("")),
+  source: z.enum([
+    "referral",
+    "inbound_email",
+    "outbound",
+    "event",
+    "other",
+  ]),
+  intentSummary: z.string().max(4000).optional().or(z.literal("")),
+  score: z
+    .union([z.coerce.number().int().min(0).max(100), z.literal("")])
+    .optional(),
+});
+
+/**
+ * Creates a lead by hand (admin "Add lead" on the Sales CRM). Distinct
+ * from the contact-form / discovery / partner ingestion paths — source is
+ * picked by the operator. Status defaults to the pipeline's first stage.
+ */
+export async function createLead(
+  _prev: ActionResult<{ leadId: string }> | undefined,
+  formData: FormData,
+): Promise<ActionResult<{ leadId: string }>> {
+  const parsed = createLeadSchema.safeParse({
+    contactName: formData.get("contactName"),
+    contactEmail: formData.get("contactEmail"),
+    companyName: formData.get("companyName") || "",
+    contactRole: formData.get("contactRole") || "",
+    source: formData.get("source"),
+    intentSummary: formData.get("intentSummary") || "",
+    score: formData.get("score") ?? "",
+  });
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return { ok: false, error: issue.message, field: issue.path.join(".") };
+  }
+
+  if (!(await hasPermissionAny("manage_leads"))) {
+    return { ok: false, error: "You don't have permission to add leads." };
+  }
+
+  const user = await requireUser();
+  const service = createServiceClient();
+
+  const { data, error } = await service
+    .from("leads")
+    .insert({
+      source: parsed.data.source,
+      company_name: parsed.data.companyName || null,
+      contact_name: parsed.data.contactName,
+      contact_email: parsed.data.contactEmail,
+      contact_role: parsed.data.contactRole || null,
+      intent_summary: parsed.data.intentSummary || null,
+      score:
+        typeof parsed.data.score === "number" ? parsed.data.score : null,
+      created_by_id: user.id,
+      updated_by_id: user.id,
+      metadata: { entered_via: "admin_manual" },
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Could not create lead." };
+  }
+
+  await service.from("lead_activities").insert({
+    lead_id: data.id,
+    kind: "note",
+    actor_id: user.id,
+    body: `Lead created manually (${parsed.data.source.replace(/_/g, " ")}).`,
+  });
+
+  await withAudit(
+    {
+      action: "lead.created",
+      resourceType: "lead",
+      resourceId: data.id,
+      after: {
+        source: parsed.data.source,
+        contact_email: parsed.data.contactEmail,
+      },
+    },
+    async () => null,
+  );
+
+  revalidatePath("/admin/leads");
+  return { ok: true, data: { leadId: data.id } };
+}
+
 const convertSchema = z.object({
   leadId: z.string().uuid(),
   organizationName: z.string().min(2, "Give the client org a name."),

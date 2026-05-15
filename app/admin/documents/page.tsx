@@ -2,8 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminDocumentDownloadLink } from "@/components/admin/AdminDocumentDownloadLink";
+import { UploadDocumentForm } from "@/components/admin/UploadDocumentForm";
 import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
+import { listClients } from "@/lib/admin/clients";
 import { formatRelative } from "@/lib/admin/format";
 import {
   listAllDocuments,
@@ -35,6 +37,10 @@ export default async function AdminDocumentsPage() {
   if (!(await hasPermissionAny("view_clients"))) redirect("/admin");
 
   const docs = await listAllDocuments();
+  const canManage = await hasPermissionAny("manage_documents");
+  const clients = canManage
+    ? (await listClients()).map((c) => ({ id: c.id, name: c.name }))
+    : [];
 
   const columns: DataTableColumn<AdminDocumentRow>[] = [
     {
@@ -113,10 +119,27 @@ export default async function AdminDocumentsPage() {
           Every <span className="italic text-[var(--color-signal)]">document</span>, every workspace.
         </h1>
         <p className="max-w-xl text-[15px] leading-relaxed text-[var(--color-text-faded)]">
-          Read-only browser of every client's document library. Each
-          download issues a 60-second signed URL and writes an audit row.
+          Browse every client&apos;s document library. Each download issues
+          a 60-second signed URL and writes an audit row.
         </p>
       </header>
+
+      {canManage && (
+        <section className="rounded-2xl border border-hairline bg-bg-elev/30 p-8">
+          <Eyebrow number="01">Upload</Eyebrow>
+          <h2 className="mt-3 text-display text-[clamp(1.4rem,3vw,1.8rem)] font-medium tracking-[-0.02em]">
+            Add a document to a{" "}
+            <span className="italic text-[var(--color-signal)]">client</span>.
+          </h2>
+          <p className="mt-2 text-[14px] text-[var(--color-text-faded)]">
+            Contracts, SOWs, reports, runbooks. It lands in the client&apos;s
+            library and is visible to their team in the portal.
+          </p>
+          <div className="mt-8">
+            <UploadDocumentForm clients={clients} />
+          </div>
+        </section>
+      )}
 
       <DataTable
         rows={docs}

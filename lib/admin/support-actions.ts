@@ -118,3 +118,78 @@ export async function setTicketStatus(
   revalidatePath("/admin/support");
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// createSupportTicket — admin raises a ticket on behalf of a client
+// ---------------------------------------------------------------------------
+const createTicketSchema = z.object({
+  organizationId: z.string().uuid("Pick a client."),
+  title: z.string().min(3, "Give the ticket a title.").max(200),
+  description: z.string().min(5, "Describe the issue.").max(8000),
+  severity: z.enum(["p1", "p2", "p3", "p4"]),
+  module: z.string().max(80).optional().or(z.literal("")),
+});
+
+export async function createSupportTicket(
+  _prev: ActionResult<{ ticketId: string }> | undefined,
+  formData: FormData,
+): Promise<ActionResult<{ ticketId: string }>> {
+  if (!(await hasPermissionAny("manage_support_tickets"))) {
+    return { ok: false, error: "Not permitted to create tickets." };
+  }
+
+  const parsed = createTicketSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    title: formData.get("title"),
+    description: formData.get("description"),
+    severity: formData.get("severity"),
+    module: formData.get("module") || "",
+  });
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return { ok: false, error: issue.message, field: issue.path.join(".") };
+  }
+
+  const user = await requireUser();
+  const service = createServiceClient();
+
+  const { data, error } = await service
+    .from("support_tickets")
+    .insert({
+      organization_id: parsed.data.organizationId,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      severity: parsed.data.severity,
+      status: "open",
+      module: parsed.data.module || null,
+      reported_by_id: user.id,
+      metadata: { entered_via: "admin_manual" },
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Could not create ticket." };
+  }
+
+  await service.from("ticket_comments").insert({
+    organization_id: parsed.data.organizationId,
+    ticket_id: data.id,
+    body: `Ticket opened by Kerning staff (severity ${parsed.data.severity.toUpperCase()}).`,
+    author_id: user.id,
+    is_internal: true,
+  });
+
+  await withAudit(
+    {
+      action: "support_ticket.created",
+      resourceType: "support_ticket",
+      resourceId: data.id,
+      organizationId: parsed.data.organizationId,
+      after: { title: parsed.data.title, severity: parsed.data.severity },
+    },
+    async () => null,
+  );
+
+  revalidatePath("/admin/support");
+  return { ok: true, data: { ticketId: data.id } };
+}
