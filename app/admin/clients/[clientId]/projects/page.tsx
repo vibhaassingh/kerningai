@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { hasPermissionAny } from "@/lib/auth/require";
+import { listPartnerOrgOptions } from "@/lib/admin/partners";
 import { listProjectsForOrg } from "@/lib/projects/projects";
 
 export const metadata = { title: "Projects" };
@@ -29,6 +30,7 @@ export default async function ClientProjectsPage({ params }: Props) {
   const { clientId } = await params;
   const projects = await listProjectsForOrg(clientId);
   const canCreate = await hasPermissionAny("manage_projects");
+  const partnerOrgs = canCreate ? await listPartnerOrgOptions() : [];
 
   return (
     <div className="space-y-10">
@@ -81,7 +83,10 @@ export default async function ClientProjectsPage({ params }: Props) {
       {canCreate && (
         <section className="space-y-3">
           <Eyebrow number="02">Create new project</Eyebrow>
-          <CreateProjectForm organizationId={clientId} />
+          <CreateProjectForm
+            organizationId={clientId}
+            partnerOrgs={partnerOrgs}
+          />
         </section>
       )}
     </div>

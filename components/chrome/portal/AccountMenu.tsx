@@ -46,17 +46,17 @@ export function AccountMenu({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex items-center gap-3 rounded-full border border-hairline px-3 py-1.5",
+          "flex items-center gap-3 rounded-full border border-hairline-strong px-3.5 py-1.5",
           "bg-bg-elev/60 text-[13px] text-text",
-          "transition-colors duration-200 hover:border-hairline-strong",
+          "transition-colors duration-200 hover:border-[var(--color-signal)]",
         )}
         aria-haspopup="menu"
         aria-expanded={open}
       >
         <Avatar name={fullName} />
-        <span className="hidden text-[12px] leading-tight md:flex md:flex-col md:items-start">
+        <span className="hidden text-[12.5px] leading-tight md:flex md:flex-col md:items-start">
           <span>{fullName}</span>
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-text-faint)]">
+          <span className="text-[10.5px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
             {roleLabel}
           </span>
         </span>

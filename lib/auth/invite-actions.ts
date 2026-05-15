@@ -22,10 +22,15 @@ import { createServiceClient } from "@/lib/supabase/service";
 import {
   CLIENT_ROLES,
   INTERNAL_ROLES,
+  PARTNER_ROLES,
   type RoleSlug,
 } from "@/lib/rbac/roles";
 
-const ALL_ROLE_SLUGS = [...INTERNAL_ROLES, ...CLIENT_ROLES] as readonly string[];
+const ALL_ROLE_SLUGS = [
+  ...INTERNAL_ROLES,
+  ...CLIENT_ROLES,
+  ...PARTNER_ROLES,
+] as readonly string[];
 
 // ---------------------------------------------------------------------------
 // inviteUser

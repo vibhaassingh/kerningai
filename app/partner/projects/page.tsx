@@ -41,7 +41,7 @@ export default async function PartnerProjectsPage() {
           {projects.map((p) => (
             <li key={p.id} className="bg-bg-elev/40 px-5 py-5">
               <Link
-                href={`/partner/projects/${p.id}/workflow-summary`}
+                href={`/partner/projects/${p.id}`}
                 className="block space-y-2 hover:text-[var(--color-signal)]"
               >
                 <header className="flex items-baseline justify-between gap-3">

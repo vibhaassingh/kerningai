@@ -170,3 +170,85 @@ export async function updateProjectStatus(
   );
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// setProjectPartner — assign / clear the referring partner org on a project
+// ---------------------------------------------------------------------------
+const setPartnerSchema = z.object({
+  projectId: z.string().uuid(),
+  organizationId: z.string().uuid(),
+  // Empty string clears the partner link.
+  partnerOrgId: z.string().uuid().optional().or(z.literal("")),
+  partnerVisibleToClient: z.boolean().optional(),
+});
+
+export async function setProjectPartner(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = setPartnerSchema.safeParse({
+    projectId: formData.get("projectId"),
+    organizationId: formData.get("organizationId"),
+    partnerOrgId: formData.get("partnerOrgId") || "",
+    partnerVisibleToClient: formData.get("partnerVisibleToClient") === "on",
+  });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+
+  try {
+    await requirePermission("manage_projects", parsed.data.organizationId);
+  } catch {
+    return { ok: false, error: "Not permitted." };
+  }
+  const user = await requireUser();
+  const service = createServiceClient();
+
+  const nextPartnerId = parsed.data.partnerOrgId
+    ? parsed.data.partnerOrgId
+    : null;
+
+  // If a partner is being attached, verify it really is a partner org.
+  if (nextPartnerId) {
+    const { data: partnerOrg } = await service
+      .from("organizations")
+      .select("id, type")
+      .eq("id", nextPartnerId)
+      .maybeSingle();
+    if (!partnerOrg || (partnerOrg as { type: string }).type !== "partner") {
+      return { ok: false, error: "That organisation is not a partner." };
+    }
+  }
+
+  const { error } = await service
+    .from("projects")
+    .update({
+      partner_org_id: nextPartnerId,
+      partner_visible_to_client: nextPartnerId
+        ? parsed.data.partnerVisibleToClient ?? false
+        : false,
+      updated_by_id: user.id,
+    })
+    .eq("id", parsed.data.projectId)
+    .eq("organization_id", parsed.data.organizationId);
+  if (error) return { ok: false, error: error.message };
+
+  await withAudit(
+    {
+      action: "project.partner_set",
+      resourceType: "project",
+      resourceId: parsed.data.projectId,
+      organizationId: parsed.data.organizationId,
+      after: {
+        partner_org_id: nextPartnerId,
+        partner_visible_to_client: nextPartnerId
+          ? parsed.data.partnerVisibleToClient ?? false
+          : false,
+      },
+    },
+    async () => null,
+  );
+
+  revalidatePath(
+    `/admin/clients/${parsed.data.organizationId}/projects/${parsed.data.projectId}/overview`,
+  );
+  return { ok: true };
+}

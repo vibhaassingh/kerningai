@@ -14,9 +14,11 @@
   --color-surface: #1c1c20;
 
   --color-text: #ece9e2;
-  --color-text-muted: #8a857c;
-  --color-text-faint: #4d4a44;
-  --color-text-faded: rgba(236, 233, 226, 0.55);
+  /* Brightened 2026-05-15 for navigation/legibility — secondary text,
+     section headers and faded body were too dim to scan quickly. */
+  --color-text-muted: #a8a399;
+  --color-text-faint: #6d6960;
+  --color-text-faded: rgba(236, 233, 226, 0.74);
 
   /* Family CTA accent — ivory fill on the dark canvas (matches the
      pill pattern across hospitality.kerning.ooo / arch / studio). */
@@ -31,9 +33,9 @@
   --color-signal-soft: #f8c97a;
   --color-signal-deep: #b8801f;
 
-  --color-hairline: rgba(236, 233, 226, 0.12);
-  --color-hairline-strong: rgba(236, 233, 226, 0.22);
-  --color-divider: rgba(236, 233, 226, 0.10);
+  --color-hairline: rgba(236, 233, 226, 0.20);
+  --color-hairline-strong: rgba(236, 233, 226, 0.32);
+  --color-divider: rgba(236, 233, 226, 0.14);
 
   --color-glass-fill: rgba(236, 233, 226, 0.06);
   --color-glass-fill-strong: rgba(236, 233, 226, 0.10);
@@ -103,6 +105,14 @@
     color: var(--color-bg);
   }
 
+  /* Prominent keyboard-navigation focus ring — applies app-wide so
+     tabbing through nav, buttons and links is clearly visible. */
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-thumb { background: var(--color-hairline-strong); }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -147,9 +157,9 @@
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -3px;
+  bottom: -2px;
   width: 0;
-  height: 1px;
+  height: 2px;
   background: currentColor;
   transition:
     width 0.4s cubic-bezier(0.22, 1, 0.36, 1),
