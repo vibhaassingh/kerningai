@@ -1,5 +1,7 @@
 # Deployment guide
 
+> **For the actual production state** (project refs, regions, live URLs, super-admin), see [`docs/operator-bootstrap-2026-05-15.md`](./operator-bootstrap-2026-05-15.md). This file describes the generic flow with placeholder values.
+
 End-to-end checklist for taking the codebase from a fresh clone to a
 running production environment on Vercel + Supabase Pro.
 

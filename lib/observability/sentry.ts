@@ -3,26 +3,16 @@ import "server-only";
 import { SENTRY_CONFIGURED } from "@/lib/env";
 
 /**
- * Observability surface — thin wrapper over Sentry that the rest of the
- * codebase calls without owning a hard dependency on the SDK. When
- * `SENTRY_DSN` isn't set, this falls back to structured `console.error`
- * so prod logs (Vercel) still capture the events.
+ * Observability surface — thin wrapper that forwards to `@sentry/nextjs`
+ * when `SENTRY_DSN` is set, falls back to structured `console.error`
+ * otherwise. Either way, the call sites in the app don't change.
  *
- * To turn this into a real Sentry integration:
- *   1. `pnpm add @sentry/nextjs`
- *   2. `pnpm dlx @sentry/wizard@latest -i nextjs` — generates
- *      sentry.client.config.ts / sentry.server.config.ts /
- *      sentry.edge.config.ts at the repo root
- *   3. Set `SENTRY_DSN` (server) and `NEXT_PUBLIC_SENTRY_DSN` (client) in
- *      Vercel envs
- *   4. Replace the `captureException` body below with
- *      `Sentry.captureException(err, { tags: ctx?.tags, user: ctx?.user, extra: ctx?.extra })`
- *      (lazy-imported via dynamic import so the SDK doesn't bloat the
- *      bundle when SENTRY_DSN is unset).
+ * The Sentry SDK is loaded via dynamic import so that environments
+ * without `SENTRY_DSN` don't pay the bundle/load cost.
  *
- * Until the wizard runs, the structured-console fallback gives us a
- * grep-able trail in Vercel runtime logs that's a strict superset of
- * what we had before.
+ * Sentry init itself happens in `sentry.server.config.ts` /
+ * `sentry.edge.config.ts`, gated by `SENTRY_DSN` from
+ * `instrumentation.ts`.
  */
 
 export interface SentryContext {
@@ -37,34 +27,58 @@ function format(level: "error" | "warning" | "info", message: string, ctx?: Sent
     surface: "sentry",
     message,
     tags: ctx?.tags,
-    user: ctx?.user
-      ? {
-          // Don't log email at error level — keeps PII out of prod logs by
-          // default. Wizard-managed Sentry handles this server-side via
-          // `sendDefaultPii: false`.
-          id: ctx.user.id,
-        }
-      : undefined,
+    // Strip email by default — keeps PII out of structured logs.
+    user: ctx?.user ? { id: ctx.user.id } : undefined,
     extra: ctx?.extra,
     sentry_configured: SENTRY_CONFIGURED,
     ts: new Date().toISOString(),
   });
 }
 
+async function forwardToSentry(
+  fn: (sdk: typeof import("@sentry/nextjs")) => void,
+): Promise<void> {
+  if (!SENTRY_CONFIGURED) return;
+  try {
+    const Sentry = await import("@sentry/nextjs");
+    fn(Sentry);
+  } catch (err) {
+    // Forwarding to Sentry must never break the underlying operation.
+    console.error("[sentry-forward] failed", err);
+  }
+}
+
 export function captureException(err: unknown, ctx?: SentryContext): void {
   const message = err instanceof Error ? err.message : String(err);
   const stack = err instanceof Error ? err.stack : undefined;
 
+  // Always log structured to console (Vercel runtime logs are grep-able).
   console.error(
     format("error", message, {
       ...ctx,
       extra: { ...(ctx?.extra ?? {}), stack },
     }),
   );
+
+  // Forward to Sentry if DSN is set. Fire-and-forget — don't block.
+  void forwardToSentry((Sentry) => {
+    Sentry.captureException(err, {
+      tags: ctx?.tags,
+      user: ctx?.user,
+      extra: ctx?.extra,
+    });
+  });
 }
 
 export function captureMessage(message: string, ctx?: SentryContext): void {
   console.warn(format("warning", message, ctx));
+  void forwardToSentry((Sentry) => {
+    Sentry.captureMessage(message, {
+      tags: ctx?.tags,
+      user: ctx?.user,
+      extra: ctx?.extra,
+    });
+  });
 }
 
 /**
