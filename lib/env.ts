@@ -29,6 +29,8 @@ const baseSchema = z.object({
   NEXT_PUBLIC_BING_TOKEN: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().optional(),
 });
 
 export const env = baseSchema.parse({
@@ -43,6 +45,8 @@ export const env = baseSchema.parse({
   NEXT_PUBLIC_BING_TOKEN: process.env.NEXT_PUBLIC_BING_TOKEN,
   SENTRY_DSN: process.env.SENTRY_DSN,
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
 });
 
 export const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
@@ -191,3 +195,9 @@ export const RATE_LIMIT_CONFIGURED = upstashSchema.safeParse({
 
 /** True when Sentry DSN is set on the server. */
 export const SENTRY_CONFIGURED = Boolean(env.SENTRY_DSN);
+
+/** Anthropic LLM — optional; gates blueprint LLM enrichment. */
+export const LLM_CONFIGURED = Boolean(env.ANTHROPIC_API_KEY);
+export const ANTHROPIC_API_KEY = env.ANTHROPIC_API_KEY ?? "";
+export const ANTHROPIC_MODEL =
+  env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5-20250929";
