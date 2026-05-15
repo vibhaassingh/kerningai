@@ -5,14 +5,18 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { MaskedReveal } from "@/components/primitives/MaskedReveal";
-import { getAllInsights, getInsight } from "@/lib/mdx";
+import { getResolvedInsights, getResolvedInsight } from "@/lib/cms/resolver";
 import { CTA } from "@/components/sections/home/CTA";
 import { SITE_URL } from "@/lib/env";
 
 type Params = { slug: string };
 
+// ISR: code MDX stays static; DB (CMS) posts not in generateStaticParams
+// render on-demand and refresh every 5 minutes.
+export const revalidate = 300;
+
 export async function generateStaticParams() {
-  const posts = await getAllInsights();
+  const posts = await getResolvedInsights();
   return posts.map((p) => ({ slug: p.slug }));
 }
 
@@ -22,7 +26,7 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getInsight(slug);
+  const post = await getResolvedInsight(slug);
   if (!post) return {};
   const url = `/insights/${slug}`;
   return {
@@ -104,7 +108,7 @@ export default async function InsightDetailPage({
   params: Promise<Params>;
 }) {
   const { slug } = await params;
-  const post = await getInsight(slug);
+  const post = await getResolvedInsight(slug);
   if (!post) notFound();
 
   const insightUrl = `${SITE_URL}/insights/${slug}`;
