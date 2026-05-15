@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 
+import { InviteClientUserForm } from "@/components/admin/InviteClientUserForm";
 import { InviteUserForm } from "@/components/admin/InviteUserForm";
 import { RevokeInviteButton } from "@/components/admin/RevokeInviteButton";
 import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
+import { listClients } from "@/lib/admin/clients";
 import { hasPermissionAny } from "@/lib/auth/require";
-import { INTERNAL_ROLES } from "@/lib/rbac/roles";
+import { CLIENT_ROLES, INTERNAL_ROLES } from "@/lib/rbac/roles";
 import { ROLE_LABELS } from "@/lib/rbac/labels";
 import { createClient } from "@/lib/supabase/server";
 
@@ -136,6 +138,14 @@ export default async function AdminUsersPage() {
     name: ROLE_LABELS[slug],
   }));
 
+  const clientRoleOptions = CLIENT_ROLES.map((slug) => ({
+    slug,
+    name: ROLE_LABELS[slug],
+  }));
+
+  const clients = await listClients();
+  const clientOptions = clients.map((c) => ({ id: c.id, name: c.name }));
+
   return (
     <div className="space-y-14">
       <header className="space-y-4">
@@ -144,9 +154,9 @@ export default async function AdminUsersPage() {
           Manage the <span className="italic text-[var(--color-signal)]">Kerning</span> internal team.
         </h1>
         <p className="max-w-xl text-[15px] leading-relaxed text-[var(--color-text-faded)]">
-          Invite staff to specific roles. Every membership change is
-          recorded in the audit log. Client-side user management lives in
-          each client's portal under Team.
+          Invite internal staff or a client user from here — every
+          membership change is recorded in the audit log. Per-client
+          management also lives under each client&apos;s People tab.
         </p>
       </header>
 
@@ -165,6 +175,24 @@ export default async function AdminUsersPage() {
             organizationId={KERNING_ORG_ID}
             organizationLabel="Kerning AI"
             roles={roleOptions}
+          />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-hairline bg-bg-elev/30 p-8">
+        <Eyebrow number="01b">Invite a client user</Eyebrow>
+        <h2 className="mt-3 text-display text-[clamp(1.4rem,3vw,1.8rem)] font-medium tracking-[-0.02em]">
+          Add someone to a{" "}
+          <span className="italic text-[var(--color-signal)]">client</span> org.
+        </h2>
+        <p className="mt-2 text-[14px] text-[var(--color-text-faded)]">
+          Pick the client, the role, type their email — done. No need to
+          open the client and dig into its People tab (that still works too).
+        </p>
+        <div className="mt-8">
+          <InviteClientUserForm
+            clients={clientOptions}
+            roles={clientRoleOptions}
           />
         </div>
       </section>
