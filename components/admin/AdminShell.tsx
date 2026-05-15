@@ -15,6 +15,7 @@ const ADMIN_NAV: SidebarSection[] = [
     items: [
       { number: "01", href: "/admin/command-center", label: "Command Center" },
       { number: "02", href: "/admin/clients", label: "Clients" },
+      { number: "02b", href: "/admin/partners", label: "Partners" },
       { number: "03", href: "/admin/leads", label: "Sales CRM" },
       { number: "04", href: "/admin/questionnaires/submissions", label: "Discovery" },
     ],

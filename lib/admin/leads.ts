@@ -66,6 +66,8 @@ export interface LeadDetail extends LeadListRow {
   interested_in: string[];
   raw_payload: Record<string, unknown>;
   updated_at: string;
+  /** Org type of the converted org (client | partner | internal), if any. */
+  client_type: string | null;
 }
 
 export async function getLeadDetail(leadId: string): Promise<LeadDetail | null> {
@@ -73,7 +75,7 @@ export async function getLeadDetail(leadId: string): Promise<LeadDetail | null> 
   const { data } = await supabase
     .from("leads")
     .select(
-      "id, source, status, company_name, contact_name, contact_email, contact_role, intent_summary, interested_in, score, owner_id, client_id, raw_payload, created_at, updated_at, owner:app_users!leads_owner_id_fkey(full_name, email), client:organizations!leads_client_id_fkey(name)",
+      "id, source, status, company_name, contact_name, contact_email, contact_role, intent_summary, interested_in, score, owner_id, client_id, raw_payload, created_at, updated_at, owner:app_users!leads_owner_id_fkey(full_name, email), client:organizations!leads_client_id_fkey(name, type)",
     )
     .eq("id", leadId)
     .maybeSingle();
@@ -97,7 +99,7 @@ export async function getLeadDetail(leadId: string): Promise<LeadDetail | null> 
     created_at: string;
     updated_at: string;
     owner: { full_name: string | null; email: string } | null;
-    client: { name: string } | null;
+    client: { name: string; type: string } | null;
   };
   const r = data as unknown as Row;
 
@@ -116,6 +118,7 @@ export async function getLeadDetail(leadId: string): Promise<LeadDetail | null> 
     owner_name: r.owner?.full_name ?? r.owner?.email ?? null,
     client_id: r.client_id,
     client_name: r.client?.name ?? null,
+    client_type: r.client?.type ?? null,
     created_at: r.created_at,
     updated_at: r.updated_at,
     raw_payload: r.raw_payload,

@@ -216,3 +216,111 @@ export async function convertLeadToClient(
 
   return { ok: true, data: { clientId: org.id } };
 }
+
+const convertPartnerSchema = z.object({
+  leadId: z.string().uuid(),
+  organizationName: z.string().min(2, "Give the partner org a name."),
+  slug: z
+    .string()
+    .min(2)
+    .regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, and hyphens only."),
+});
+
+/**
+ * Promotes a lead into a PARTNER organisation (referral channel) instead
+ * of a client. Mirrors convertLeadToClient but: org type = 'partner', no
+ * client_settings row, and the lead is marked won + linked so it isn't
+ * re-converted. The lead detail page branches the "converted" link on the
+ * org type so a partner conversion points at /admin/partners.
+ */
+export async function convertLeadToPartner(
+  _prev: ActionResult<{ partnerId: string }> | undefined,
+  formData: FormData,
+): Promise<ActionResult<{ partnerId: string }>> {
+  const parsed = convertPartnerSchema.safeParse({
+    leadId: formData.get("leadId"),
+    organizationName: formData.get("organizationName"),
+    slug: formData.get("slug"),
+  });
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return { ok: false, error: issue.message, field: issue.path.join(".") };
+  }
+
+  if (!(await hasPermissionAny("manage_clients"))) {
+    return {
+      ok: false,
+      error: "You don't have permission to create partner organisations.",
+    };
+  }
+
+  const user = await requireUser();
+  const service = createServiceClient();
+
+  const { data: lead } = await service
+    .from("leads")
+    .select("id, contact_email, contact_name, company_name, client_id")
+    .eq("id", parsed.data.leadId)
+    .maybeSingle();
+  if (!lead) return { ok: false, error: "Lead not found." };
+  if (lead.client_id) {
+    return { ok: false, error: "Lead has already been converted." };
+  }
+
+  const { data: org, error: orgError } = await service
+    .from("organizations")
+    .insert({
+      name: parsed.data.organizationName,
+      slug: parsed.data.slug,
+      type: "partner",
+      region: "eu-central-1",
+      status: "active",
+      billing_email: lead.contact_email,
+    })
+    .select("id")
+    .single();
+
+  if (orgError || !org) {
+    if (orgError?.message?.includes("duplicate")) {
+      return {
+        ok: false,
+        error: "A partner with that slug already exists.",
+        field: "slug",
+      };
+    }
+    return {
+      ok: false,
+      error: orgError?.message ?? "Could not create partner.",
+    };
+  }
+
+  await service
+    .from("leads")
+    .update({ status: "won", client_id: org.id, updated_by_id: user.id })
+    .eq("id", parsed.data.leadId);
+
+  await service.from("lead_activities").insert({
+    lead_id: parsed.data.leadId,
+    kind: "converted",
+    actor_id: user.id,
+    body: `Converted to partner: ${parsed.data.organizationName}`,
+    payload: { partner_org_id: org.id, slug: parsed.data.slug, converted_to: "partner" },
+  });
+
+  await withAudit(
+    {
+      action: "lead.converted_partner",
+      resourceType: "lead",
+      resourceId: parsed.data.leadId,
+      organizationId: org.id,
+      after: { partner_org_id: org.id, slug: parsed.data.slug },
+    },
+    async () => null,
+  );
+
+  revalidatePath(`/admin/leads/${parsed.data.leadId}`);
+  revalidatePath("/admin/leads");
+  revalidatePath("/admin/partners");
+
+  return { ok: true, data: { partnerId: org.id } };
+}

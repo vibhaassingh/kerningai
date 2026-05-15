@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 
 import { ProjectOverview } from "@/components/projects/ProjectOverview";
+import { ProjectPartnerAssignment } from "@/components/projects/ProjectPartnerAssignment";
+import { hasPermissionAny } from "@/lib/auth/require";
+import { listPartnerOrgOptions } from "@/lib/admin/partners";
 import { getProject } from "@/lib/projects/projects";
 
 export const metadata = { title: "Project — Overview" };
@@ -11,7 +14,7 @@ interface Props {
 }
 
 export default async function ProjectOverviewPage({ params }: Props) {
-  const { projectId } = await params;
+  const { clientId, projectId } = await params;
   const project = await getProject(projectId);
   if (!project) notFound();
 
@@ -19,11 +22,25 @@ export default async function ProjectOverviewPage({ params }: Props) {
     ? `/admin/solution-blueprints/${project.blueprint_id}`
     : null;
 
+  const canManage = await hasPermissionAny("manage_projects");
+  const partnerOrgs = canManage ? await listPartnerOrgOptions() : [];
+
   return (
-    <ProjectOverview
-      project={project}
-      audience="admin"
-      blueprintHref={blueprintHref}
-    />
+    <div className="space-y-10">
+      <ProjectOverview
+        project={project}
+        audience="admin"
+        blueprintHref={blueprintHref}
+      />
+      {canManage && (
+        <ProjectPartnerAssignment
+          projectId={project.id}
+          organizationId={clientId}
+          currentPartnerOrgId={project.partner_org_id}
+          currentPartnerVisibleToClient={project.partner_visible_to_client}
+          partnerOrgs={partnerOrgs}
+        />
+      )}
+    </div>
   );
 }

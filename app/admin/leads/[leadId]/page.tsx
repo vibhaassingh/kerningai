@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { AddLeadNoteForm } from "@/components/admin/AddLeadNoteForm";
 import { ConvertLeadForm } from "@/components/admin/ConvertLeadForm";
+import { ConvertLeadToPartnerForm } from "@/components/admin/ConvertLeadToPartnerForm";
 import { LeadStatusSelect } from "@/components/admin/LeadStatusSelect";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import {
@@ -34,6 +35,7 @@ export default async function LeadDetailPage({ params }: LeadDetailProps) {
   if (!lead) notFound();
 
   const isConverted = !!lead.client_id;
+  const convertedToPartner = lead.client_type === "partner";
   const canConvert = !isConverted && (await hasPermissionAny("manage_clients"));
 
   const slugSuggestion = (lead.company_name ?? lead.contact_name)
@@ -121,9 +123,13 @@ export default async function LeadDetailPage({ params }: LeadDetailProps) {
         <section className="rounded-2xl border border-[var(--color-signal-deep)]/30 bg-bg-elev/30 p-8">
           <Eyebrow number="06">Converted</Eyebrow>
           <h2 className="mt-3 text-display text-[1.4rem] tracking-[-0.02em]">
-            This lead became a client:{" "}
+            This lead became a {convertedToPartner ? "partner" : "client"}:{" "}
             <Link
-              href={`/admin/clients/${lead.client_id}`}
+              href={
+                convertedToPartner
+                  ? `/admin/partners/${lead.client_id}`
+                  : `/admin/clients/${lead.client_id}`
+              }
               className="italic text-[var(--color-signal)] hover:underline"
             >
               {lead.client_name}
@@ -137,18 +143,35 @@ export default async function LeadDetailPage({ params }: LeadDetailProps) {
           <Eyebrow number="06">Convert</Eyebrow>
           <h2 className="mt-3 text-display text-[clamp(1.4rem,3vw,1.8rem)] font-medium tracking-[-0.02em]">
             Promote this lead to a{" "}
-            <span className="italic text-[var(--color-signal)]">client</span>.
+            <span className="italic text-[var(--color-signal)]">client</span>{" "}
+            or <span className="italic text-[var(--color-signal)]">partner</span>.
           </h2>
           <p className="mt-2 text-[14px] text-[var(--color-text-faded)]">
-            Creates the client org + default settings. You'll be taken to
-            its detail page so you can invite users and add sites.
+            A client gets an org + default settings + sites. A partner is a
+            referral channel that can follow the workflow canvas of projects
+            it introduces. Pick one — a lead converts once.
           </p>
-          <div className="mt-8">
-            <ConvertLeadForm
-              leadId={lead.id}
-              defaultName={lead.company_name ?? lead.contact_name}
-              defaultSlug={slugSuggestion}
-            />
+          <div className="mt-8 space-y-10">
+            <div className="space-y-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+                Convert to client
+              </p>
+              <ConvertLeadForm
+                leadId={lead.id}
+                defaultName={lead.company_name ?? lead.contact_name}
+                defaultSlug={slugSuggestion}
+              />
+            </div>
+            <div className="space-y-3 border-t border-hairline pt-10">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+                Convert to partner
+              </p>
+              <ConvertLeadToPartnerForm
+                leadId={lead.id}
+                defaultName={lead.company_name ?? lead.contact_name}
+                defaultSlug={slugSuggestion}
+              />
+            </div>
           </div>
         </section>
       )}

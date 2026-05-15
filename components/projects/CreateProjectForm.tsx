@@ -7,9 +7,13 @@ import type { ActionResult } from "@/lib/auth/actions";
 
 interface CreateProjectFormProps {
   organizationId: string;
+  partnerOrgs?: { id: string; name: string }[];
 }
 
-export function CreateProjectForm({ organizationId }: CreateProjectFormProps) {
+export function CreateProjectForm({
+  organizationId,
+  partnerOrgs = [],
+}: CreateProjectFormProps) {
   const [result, dispatch, pending] = useActionState<
     ActionResult<{ projectId: string; slug: string }> | undefined,
     FormData
@@ -65,6 +69,37 @@ export function CreateProjectForm({ organizationId }: CreateProjectFormProps) {
           className="w-full rounded-md border border-hairline bg-bg px-3 py-2 text-[13px] text-text"
         />
       </label>
+      {partnerOrgs.length > 0 && (
+        <>
+          <label className="space-y-1.5">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+              Referring partner (optional)
+            </span>
+            <select
+              name="partnerOrgId"
+              defaultValue=""
+              className="w-full rounded-md border border-hairline bg-bg px-3 py-2 text-[13px] text-text"
+            >
+              <option value="">— None —</option>
+              {partnerOrgs.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2.5 self-end pb-2">
+            <input
+              type="checkbox"
+              name="partnerVisibleToClient"
+              className="h-4 w-4 rounded border-hairline bg-bg"
+            />
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+              Show partner attribution to client
+            </span>
+          </label>
+        </>
+      )}
       <div className="flex items-center justify-between gap-3 sm:col-span-2">
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
           Status defaults to discovery
