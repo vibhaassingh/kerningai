@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { ProjectTabs } from "@/components/admin/ProjectTabs";
 import { getProject } from "@/lib/projects/projects";
 
 export const dynamic = "force-dynamic";
@@ -10,12 +10,6 @@ interface Props {
   children: ReactNode;
   params: Promise<{ clientId: string; projectId: string }>;
 }
-
-const TABS = [
-  { key: "overview", label: "Overview" },
-  { key: "workflow-canvas", label: "Workflow Canvas" },
-  { key: "proposal/workflow", label: "Proposal" },
-] as const;
 
 export default async function ProjectLayout({ children, params }: Props) {
   const { clientId, projectId } = await params;
@@ -36,20 +30,7 @@ export default async function ProjectLayout({ children, params }: Props) {
             {project.business_label}
           </p>
         )}
-        <nav
-          aria-label="Project sections"
-          className="-mb-px flex flex-wrap gap-1 border-b border-hairline"
-        >
-          {TABS.map((tab) => (
-            <Link
-              key={tab.key}
-              href={`/admin/clients/${clientId}/projects/${projectId}/${tab.key}`}
-              className="border-b-2 border-transparent px-3 py-3 text-[13px] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-signal-deep)] hover:text-text"
-            >
-              {tab.label}
-            </Link>
-          ))}
-        </nav>
+        <ProjectTabs clientId={clientId} projectId={projectId} />
       </header>
       <div>{children}</div>
     </div>

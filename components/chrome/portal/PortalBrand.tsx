@@ -19,16 +19,16 @@ export function PortalBrand({ subline, href }: PortalBrandProps) {
   return (
     <Link
       href={href}
-      className="block px-6 py-6 text-text"
+      className="block border-b border-hairline px-5 py-6 text-text transition-colors hover:bg-[var(--color-glass-fill)]"
       aria-label={`Kerning ${subline}`}
     >
       <div className="flex items-center gap-2">
-        <KerningMonogram className="h-[12px]" />
-        <span className="text-display text-[14px] tracking-[-0.01em] leading-none">
+        <KerningMonogram className="h-[14px]" />
+        <span className="text-display text-[16px] tracking-[-0.01em] leading-none">
           AI
         </span>
       </div>
-      <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-faint)]">
+      <p className="mt-1.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
         {subline}
       </p>
     </Link>

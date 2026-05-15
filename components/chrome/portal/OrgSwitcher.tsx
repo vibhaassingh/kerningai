@@ -46,12 +46,12 @@ export function OrgSwitcher({ memberships, currentOrgId }: OrgSwitcherProps) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         disabled={pending}
-        className="flex items-center gap-2 rounded-full border border-hairline px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-text-faded)] hover:border-[var(--color-signal-deep)] hover:text-text disabled:opacity-50"
+        className="flex items-center gap-2 rounded-full border border-hairline-strong px-3.5 py-1.5 font-mono text-[12px] uppercase tracking-[0.12em] text-text hover:border-[var(--color-signal)] hover:text-[var(--color-signal)] disabled:opacity-50"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className="text-text">{current?.organizationName ?? "Switch org"}</span>
-        <span aria-hidden className="text-[10px]">{open ? "▴" : "▾"}</span>
+        <span>{current?.organizationName ?? "Switch org"}</span>
+        <span aria-hidden className="text-[11px]">{open ? "▴" : "▾"}</span>
       </button>
 
       {open && (
