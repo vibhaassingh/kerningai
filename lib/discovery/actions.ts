@@ -241,6 +241,106 @@ export async function saveAnswer(
   return { ok: true };
 }
 
+// ---------------------------------------------------------------------------
+// File upload — real bytes to the `questionnaire-uploads` Storage bucket.
+// Anonymous prospects route through this service-role action (the bucket
+// RLS comment in 0004 documents exactly this path). The action both
+// uploads the object AND upserts the answer value as a metadata record:
+//   { name, size, path, bucket, uploaded_at }
+// ---------------------------------------------------------------------------
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // matches bucket file_size_limit
+
+function sanitizeFilename(name: string): string {
+  return (
+    name
+      .replace(/[^a-zA-Z0-9._-]+/g, "_")
+      .replace(/_{2,}/g, "_")
+      .slice(-120) || "file"
+  );
+}
+
+export interface UploadedFileMeta {
+  name: string;
+  size: number;
+  path: string;
+  bucket: string;
+  uploaded_at: string;
+}
+
+export async function uploadQuestionnaireFile(
+  _prev: ActionResult<{ file: UploadedFileMeta }> | undefined,
+  formData: FormData,
+): Promise<ActionResult<{ file: UploadedFileMeta }>> {
+  const questionId = formData.get("questionId");
+  const file = formData.get("file");
+  if (typeof questionId !== "string" || !questionId) {
+    return { ok: false, error: "Missing question." };
+  }
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "No file selected." };
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return { ok: false, error: "File exceeds the 50 MB limit." };
+  }
+
+  const cookieStore = await cookies();
+  const session = readDiscoveryCookie(cookieStore);
+  if (!session) {
+    return { ok: false, error: "Your session expired. Refresh to resume." };
+  }
+
+  const service = createServiceClient();
+  const { data: submission } = await service
+    .from("questionnaire_submissions")
+    .select("id, status, resume_token_hash")
+    .eq("id", session.submissionId)
+    .maybeSingle();
+  if (
+    !submission ||
+    submission.status !== "draft" ||
+    submission.resume_token_hash !== hashToken(session.token)
+  ) {
+    return { ok: false, error: "Session not recognised." };
+  }
+
+  const safeName = sanitizeFilename(file.name);
+  const path = `submissions/${session.submissionId}/${questionId}-${Date.now()}-${safeName}`;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+
+  const { error: upErr } = await service.storage
+    .from("questionnaire-uploads")
+    .upload(path, bytes, {
+      contentType: file.type || "application/octet-stream",
+      upsert: true,
+    });
+  if (upErr) {
+    return { ok: false, error: `Upload failed: ${upErr.message}` };
+  }
+
+  const meta: UploadedFileMeta = {
+    name: file.name,
+    size: file.size,
+    path,
+    bucket: "questionnaire-uploads",
+    uploaded_at: new Date().toISOString(),
+  };
+
+  const { error: ansErr } = await service
+    .from("questionnaire_answers")
+    .upsert(
+      {
+        submission_id: session.submissionId,
+        question_id: questionId,
+        value: meta,
+        answered_at: new Date().toISOString(),
+      },
+      { onConflict: "submission_id,question_id" },
+    );
+  if (ansErr) return { ok: false, error: ansErr.message };
+
+  return { ok: true, data: { file: meta } };
+}
+
 const submitSchema = z.object({
   submitterName: z.string().min(2),
   submitterEmail: z.string().email(),

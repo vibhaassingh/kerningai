@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useId, useMemo } from "react";
+import { useCallback, useId, useMemo, useState, useTransition } from "react";
 
 import { cn } from "@/lib/cn";
+import { uploadQuestionnaireFile } from "@/lib/discovery/actions";
 import type { QuestionnaireQuestion } from "@/lib/discovery/templates";
 
 interface QuestionRendererProps {
@@ -56,11 +57,9 @@ export function QuestionRenderer(props: QuestionRendererProps) {
     case "priority_ranking":
       return <PriorityRanking {...props} />;
     case "matrix":
+      return <MatrixField {...props} />;
     case "repeating_group":
-      // Complex composite types — Phase 3d will replace this with a
-      // proper grid/array editor. For now, fall back to long_text so
-      // prospects can still capture the answer freeform.
-      return <LongText {...props} />;
+      return <RepeatingGroupField {...props} />;
     default:
       return <LongText {...props} />;
   }
@@ -402,35 +401,56 @@ function DateField(p: QuestionRendererProps) {
 
 function FileField(p: QuestionRendererProps) {
   const id = useId();
-  // Phase 3c stores upload metadata as { name, size }. The actual byte
-  // upload to Supabase Storage ships in 3d alongside the prospect-storage
-  // bucket migration. Capturing filename + size keeps review screens
-  // useful in the meantime.
-  const current = (p.value as { name?: string; size?: number } | null) ?? null;
+  // Real byte upload to the `questionnaire-uploads` Storage bucket via
+  // the service-role server action (handles anonymous prospects + upserts
+  // the answer). Value is { name, size, path, bucket, uploaded_at }.
+  const current =
+    (p.value as
+      | { name?: string; size?: number; path?: string }
+      | null) ?? null;
+  const [pending, startTransition] = useTransition();
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   return (
     <FieldShell
       label={p.question.label}
-      help={p.question.help ?? "Attach a file (metadata is captured now; full upload ships next)."}
+      help={p.question.help ?? "Attach a file (PDF, image, doc — up to 50 MB)."}
       required={p.question.required}
-      saving={p.saving}
-      error={p.error}
+      saving={p.saving || pending}
+      error={p.error ?? uploadError}
       htmlFor={id}
     >
       <input
         id={id}
         type="file"
+        disabled={pending}
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) {
-            p.onChange({ name: f.name, size: f.size });
-            setTimeout(() => p.onCommit(), 0);
-          }
+          if (!f) return;
+          setUploadError(null);
+          const fd = new FormData();
+          fd.set("questionId", p.question.id);
+          fd.set("file", f);
+          startTransition(async () => {
+            const result = await uploadQuestionnaireFile(undefined, fd);
+            if (result.ok && result.data) {
+              p.onChange(result.data.file);
+            } else {
+              setUploadError(result.ok ? "Upload failed." : result.error);
+            }
+          });
         }}
-        className="block w-full text-[13px] text-[var(--color-text-faded)] file:mr-3 file:rounded-full file:border file:border-hairline file:bg-transparent file:px-3 file:py-1.5 file:font-mono file:text-[10px] file:uppercase file:tracking-[0.14em] file:text-[var(--color-text-faded)] hover:file:border-[var(--color-signal)] hover:file:text-[var(--color-signal)]"
+        className="block w-full text-[13px] text-[var(--color-text-faded)] file:mr-3 file:rounded-full file:border file:border-hairline file:bg-transparent file:px-3 file:py-1.5 file:font-mono file:text-[10px] file:uppercase file:tracking-[0.14em] file:text-[var(--color-text-faded)] hover:file:border-[var(--color-signal)] hover:file:text-[var(--color-signal)] disabled:opacity-50"
       />
-      {current && (
-        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-text-faded)]">
-          Selected · {current.name} {current.size ? `· ${Math.round(current.size / 1024)}KB` : ""}
+      {pending && (
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-text-faint)]">
+          Uploading…
+        </p>
+      )}
+      {!pending && current?.path && (
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-signal)]">
+          Uploaded · {current.name}
+          {current.size ? ` · ${Math.round(current.size / 1024)}KB` : ""}
         </p>
       )}
     </FieldShell>
@@ -654,6 +674,358 @@ function PriorityRanking(p: QuestionRendererProps) {
           );
         })}
       </ol>
+    </FieldShell>
+  );
+}
+
+// ===========================================================================
+// Composite types — matrix (grid) + repeating_group (array of records)
+// ===========================================================================
+
+interface AxisItem {
+  value: string;
+  label: string;
+}
+
+function asAxis(raw: unknown): AxisItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((r) => {
+      if (typeof r === "string") return { value: r, label: r };
+      if (r && typeof r === "object") {
+        const o = r as Record<string, unknown>;
+        const value = typeof o.value === "string" ? o.value : null;
+        if (!value) return null;
+        return {
+          value,
+          label: typeof o.label === "string" ? o.label : value,
+        };
+      }
+      return null;
+    })
+    .filter((x): x is AxisItem => x !== null);
+}
+
+/**
+ * Matrix: a rows × columns grid. config = { rows, columns, cell }.
+ *   cell "select" uses config.cellOptions (or question.options).
+ *   cell "text" (default) is a free text input per cell.
+ * Stored as { [rowValue]: { [colValue]: string } }.
+ * Degrades to a freeform textarea (string value) if rows/columns are
+ * missing so a prospect is never blocked.
+ */
+function MatrixField(p: QuestionRendererProps) {
+  const cfg = (p.question.config ?? {}) as {
+    rows?: unknown;
+    columns?: unknown;
+    cell?: string;
+    cellOptions?: unknown;
+  };
+  const rows = useMemo(() => asAxis(cfg.rows), [cfg.rows]);
+  const cols = useMemo(() => asAxis(cfg.columns), [cfg.columns]);
+  const cellKind = cfg.cell === "select" ? "select" : "text";
+  const cellOptions = useMemo(() => {
+    const fromCfg = asAxis(cfg.cellOptions);
+    if (fromCfg.length) return fromCfg;
+    return p.question.options.map((o) => ({ value: o.value, label: o.label }));
+  }, [cfg.cellOptions, p.question.options]);
+
+  const grid = useMemo(
+    () =>
+      p.value && typeof p.value === "object" && !Array.isArray(p.value)
+        ? (p.value as Record<string, Record<string, string>>)
+        : {},
+    [p.value],
+  );
+
+  const setCell = useCallback(
+    (rv: string, cv: string, val: string) => {
+      const next: Record<string, Record<string, string>> = {
+        ...grid,
+        [rv]: { ...(grid[rv] ?? {}), [cv]: val },
+      };
+      p.onChange(next);
+    },
+    [grid, p],
+  );
+
+  if (rows.length === 0 || cols.length === 0) {
+    // No axis config — capture freeform so the question still works.
+    const current = typeof p.value === "string" ? p.value : "";
+    return (
+      <FieldShell
+        label={p.question.label}
+        help={p.question.help}
+        required={p.question.required}
+        saving={p.saving}
+        error={p.error}
+      >
+        <textarea
+          rows={4}
+          value={current}
+          placeholder={p.question.placeholder ?? "One item per line"}
+          onChange={(e) => p.onChange(e.target.value)}
+          onBlur={p.onCommit}
+          className="w-full resize-none bg-transparent border-0 border-b border-hairline pb-2 text-[15.5px] leading-relaxed text-text placeholder:text-[var(--color-text-faint)] outline-none transition-colors focus:border-[var(--color-signal)]"
+        />
+      </FieldShell>
+    );
+  }
+
+  return (
+    <FieldShell
+      label={p.question.label}
+      help={p.question.help}
+      required={p.question.required}
+      saving={p.saving}
+      error={p.error}
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              <th className="border-b border-hairline px-2 py-2 text-left" />
+              {cols.map((c) => (
+                <th
+                  key={c.value}
+                  className="border-b border-hairline px-2 py-2 text-left font-mono text-[10.5px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]"
+                >
+                  {c.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.value}>
+                <th className="border-b border-hairline px-2 py-2 text-left text-[13px] font-normal text-text">
+                  {r.label}
+                </th>
+                {cols.map((c) => {
+                  const v = grid[r.value]?.[c.value] ?? "";
+                  return (
+                    <td
+                      key={c.value}
+                      className="border-b border-hairline px-2 py-2"
+                    >
+                      {cellKind === "select" ? (
+                        <select
+                          value={v}
+                          onChange={(e) =>
+                            setCell(r.value, c.value, e.target.value)
+                          }
+                          onBlur={p.onCommit}
+                          className="w-full bg-transparent text-[13px] text-text outline-none"
+                        >
+                          <option value="">—</option>
+                          {cellOptions.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={v}
+                          onChange={(e) =>
+                            setCell(r.value, c.value, e.target.value)
+                          }
+                          onBlur={p.onCommit}
+                          className="w-full bg-transparent text-[13px] text-text outline-none"
+                        />
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </FieldShell>
+  );
+}
+
+interface RepeatingFieldDef {
+  slug: string;
+  label: string;
+  kind: "short_text" | "number" | "single_select";
+  options?: AxisItem[];
+}
+
+function asFieldDefs(raw: unknown): RepeatingFieldDef[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((f): RepeatingFieldDef | null => {
+      if (!f || typeof f !== "object") return null;
+      const o = f as Record<string, unknown>;
+      const slug = typeof o.slug === "string" ? o.slug : null;
+      if (!slug) return null;
+      const kind: RepeatingFieldDef["kind"] =
+        o.kind === "number" || o.kind === "single_select"
+          ? o.kind
+          : "short_text";
+      return {
+        slug,
+        label: typeof o.label === "string" ? o.label : slug,
+        kind,
+        options: asAxis(o.options),
+      };
+    })
+    .filter((x): x is RepeatingFieldDef => x !== null);
+}
+
+/**
+ * Repeating group: an editable array of records. config = { fields,
+ * maxItems?, addLabel? }. Stored as Array<Record<fieldSlug, value>>.
+ * Degrades to a single freeform note row if no fields are configured.
+ */
+function RepeatingGroupField(p: QuestionRendererProps) {
+  const cfg = (p.question.config ?? {}) as {
+    fields?: unknown;
+    maxItems?: unknown;
+    addLabel?: unknown;
+  };
+  const fields = useMemo(() => asFieldDefs(cfg.fields), [cfg.fields]);
+  const maxItems =
+    typeof cfg.maxItems === "number" && cfg.maxItems > 0 ? cfg.maxItems : 10;
+  const addLabel =
+    typeof cfg.addLabel === "string" ? cfg.addLabel : "Add row";
+
+  const effectiveFields: RepeatingFieldDef[] =
+    fields.length > 0
+      ? fields
+      : [{ slug: "note", label: "Note", kind: "short_text" }];
+
+  const rows = useMemo(
+    () =>
+      Array.isArray(p.value)
+        ? (p.value as Record<string, unknown>[])
+        : [],
+    [p.value],
+  );
+
+  const commit = useCallback(
+    (next: Record<string, unknown>[]) => {
+      p.onChange(next);
+      setTimeout(() => p.onCommit(), 0);
+    },
+    [p],
+  );
+
+  const addRow = useCallback(() => {
+    if (rows.length >= maxItems) return;
+    commit([...rows, {}]);
+  }, [rows, maxItems, commit]);
+
+  const removeRow = useCallback(
+    (idx: number) => commit(rows.filter((_, i) => i !== idx)),
+    [rows, commit],
+  );
+
+  const setField = useCallback(
+    (idx: number, slug: string, val: unknown) => {
+      const next = rows.map((r, i) =>
+        i === idx ? { ...r, [slug]: val } : r,
+      );
+      p.onChange(next);
+    },
+    [rows, p],
+  );
+
+  return (
+    <FieldShell
+      label={p.question.label}
+      help={
+        p.question.help ??
+        "Add one entry per item. Use the controls to add or remove rows."
+      }
+      required={p.question.required}
+      saving={p.saving}
+      error={p.error}
+    >
+      <div className="space-y-3">
+        {rows.length === 0 && (
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-text-faint)]">
+            No entries yet.
+          </p>
+        )}
+        {rows.map((row, idx) => (
+          <div
+            key={idx}
+            className="grid items-end gap-3 rounded-lg border border-hairline-strong px-3 py-3 sm:grid-cols-2"
+          >
+            {effectiveFields.map((f) => {
+              const val = row[f.slug];
+              return (
+                <label key={f.slug} className="space-y-1">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                    {f.label}
+                  </span>
+                  {f.kind === "single_select" ? (
+                    <select
+                      value={typeof val === "string" ? val : ""}
+                      onChange={(e) => setField(idx, f.slug, e.target.value)}
+                      onBlur={p.onCommit}
+                      className="w-full bg-transparent border-0 border-b border-hairline pb-1.5 text-[14px] text-text outline-none focus:border-[var(--color-signal)]"
+                    >
+                      <option value="">—</option>
+                      {(f.options ?? []).map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={f.kind === "number" ? "number" : "text"}
+                      value={
+                        val == null
+                          ? ""
+                          : typeof val === "number"
+                            ? String(val)
+                            : String(val)
+                      }
+                      onChange={(e) =>
+                        setField(
+                          idx,
+                          f.slug,
+                          f.kind === "number"
+                            ? e.target.value === ""
+                              ? null
+                              : Number(e.target.value)
+                            : e.target.value,
+                        )
+                      }
+                      onBlur={p.onCommit}
+                      className="w-full bg-transparent border-0 border-b border-hairline pb-1.5 text-[14px] text-text outline-none focus:border-[var(--color-signal)]"
+                    />
+                  )}
+                </label>
+              );
+            })}
+            <div className="sm:col-span-2">
+              <button
+                type="button"
+                onClick={() => removeRow(idx)}
+                className="rounded-full border border-hairline px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-faded)] hover:border-[var(--color-signal)] hover:text-[var(--color-signal)]"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+        {rows.length < maxItems && (
+          <button
+            type="button"
+            onClick={addRow}
+            className="rounded-full border border-[var(--color-signal-deep)] px-4 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-signal-soft)] hover:border-[var(--color-signal)] hover:text-[var(--color-signal)]"
+          >
+            {addLabel}
+          </button>
+        )}
+      </div>
     </FieldShell>
   );
 }

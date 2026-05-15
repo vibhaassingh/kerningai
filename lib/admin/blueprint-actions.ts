@@ -7,6 +7,8 @@ import type { ActionResult } from "@/lib/auth/actions";
 import { hasPermissionAny, requireUser } from "@/lib/auth/require";
 import { withAudit } from "@/lib/audit/with-audit";
 import { generateBlueprint } from "@/lib/blueprint/generate";
+import { enrichBlueprint } from "@/lib/blueprint/llm-enrich";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import { createServiceClient } from "@/lib/supabase/service";
 
 const generateSchema = z.object({
@@ -81,6 +83,26 @@ export async function generateBlueprintForSubmission(
     answers,
   });
 
+  // Optional LLM enrichment of the narrative (rule-based stays
+  // authoritative for scoring/modules/phases/risks). Gated by the
+  // `blueprint_llm_enrichment` flag AND ANTHROPIC_API_KEY. Fails closed.
+  let generatedBy: "rule_based" | "llm_enriched" = "rule_based";
+  let summaryOut = blueprint.summary;
+  let briefOut = blueprint.executiveBrief;
+  if (await isFeatureEnabled("blueprint_llm_enrichment")) {
+    const enriched = await enrichBlueprint({
+      templateName: s.template?.name ?? "Discovery",
+      service: s.template?.service ?? "unknown",
+      industry,
+      blueprint,
+    });
+    if (enriched) {
+      summaryOut = enriched.summary;
+      briefOut = enriched.executiveBrief;
+      generatedBy = "llm_enriched";
+    }
+  }
+
   // Compute next version.
   const { data: priorVersions } = await service
     .from("solution_blueprints")
@@ -102,9 +124,9 @@ export async function generateBlueprintForSubmission(
       status: "needs_internal_review",
       complexity_score: blueprint.score.score,
       complexity_band: blueprint.score.band,
-      summary: blueprint.summary,
-      executive_brief: blueprint.executiveBrief,
-      generated_by: "rule_based",
+      summary: summaryOut,
+      executive_brief: briefOut,
+      generated_by: generatedBy,
       metadata: { drivers: blueprint.score.drivers },
     })
     .select("id")
