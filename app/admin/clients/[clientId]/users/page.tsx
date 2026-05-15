@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
 import { InviteUserForm } from "@/components/admin/InviteUserForm";
+import { MemberActions } from "@/components/admin/MemberActions";
+import { ResendInviteButton } from "@/components/admin/ResendInviteButton";
 import { RevokeInviteButton } from "@/components/admin/RevokeInviteButton";
 import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
@@ -14,6 +16,7 @@ import {
 import { formatRelative } from "@/lib/admin/format";
 import { CLIENT_ROLES } from "@/lib/rbac/roles";
 import { ROLE_LABELS } from "@/lib/rbac/labels";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "People" };
 export const dynamic = "force-dynamic";
@@ -31,7 +34,17 @@ export default async function ClientUsersPage({ params }: UsersPageProps) {
   ]);
   if (!client) notFound();
 
+  const supabase = await createClient();
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser();
+
   const pending = invites.filter((i) => i.status === "pending");
+
+  const roleOptions = CLIENT_ROLES.map((slug) => ({
+    slug,
+    name: ROLE_LABELS[slug],
+  }));
 
   const memberColumns: DataTableColumn<ClientMember>[] = [
     {
@@ -75,6 +88,24 @@ export default async function ClientUsersPage({ params }: UsersPageProps) {
           <span className="text-[var(--color-text-faint)]">—</span>
         ),
     },
+    {
+      key: "actions",
+      header: "",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (row) => (
+        <MemberActions
+          membershipId={row.membership_id}
+          userId={row.user_id}
+          email={row.email}
+          organizationId={clientId}
+          currentRoleSlug={row.role_slug}
+          status={row.status}
+          isSelf={row.user_id === currentUser?.id}
+          roleOptions={roleOptions}
+        />
+      ),
+    },
   ];
 
   const inviteColumns: DataTableColumn<ClientPendingInvite>[] = [
@@ -100,14 +131,14 @@ export default async function ClientUsersPage({ params }: UsersPageProps) {
       header: "",
       headerClassName: "text-right",
       className: "text-right",
-      cell: (row) => <RevokeInviteButton inviteId={row.id} />,
+      cell: (row) => (
+        <span className="inline-flex items-center gap-4">
+          <ResendInviteButton inviteId={row.id} />
+          <RevokeInviteButton inviteId={row.id} />
+        </span>
+      ),
     },
   ];
-
-  const roleOptions = CLIENT_ROLES.map((slug) => ({
-    slug,
-    name: ROLE_LABELS[slug],
-  }));
 
   return (
     <div className="space-y-14">

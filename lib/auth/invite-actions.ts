@@ -226,6 +226,98 @@ export async function revokeInvite(
 }
 
 // ---------------------------------------------------------------------------
+// resendInvite — issue a FRESH token + re-send the email for a pending
+// invite. The old link is invalidated (token_hash rotates) so resending
+// is also a safe way to recover from a leaked/expired link. Returns the
+// new accept URL so an admin can copy it if email delivery is down.
+// ---------------------------------------------------------------------------
+export async function resendInvite(
+  inviteId: string,
+): Promise<ActionResult<{ acceptUrl: string }>> {
+  const service = createServiceClient();
+  const { data: invite } = await service
+    .from("invites")
+    .select("id, email, organization_id, role_slug, status")
+    .eq("id", inviteId)
+    .maybeSingle();
+
+  if (!invite) return { ok: false, error: "Invite not found." };
+  if (invite.status !== "pending") {
+    return {
+      ok: false,
+      error: `Invite is ${invite.status} — can only resend pending invites.`,
+    };
+  }
+
+  try {
+    await requirePermission("manage_users", invite.organization_id);
+  } catch {
+    return { ok: false, error: "Not permitted." };
+  }
+
+  const user = await requireUser();
+  const supabase = await createClient();
+  const { data: actorProfile } = await supabase
+    .from("app_users")
+    .select("full_name, email")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const { token, tokenHash } = generateInviteToken();
+  const expiresAt = defaultInviteExpiry();
+
+  const { error: updErr } = await service
+    .from("invites")
+    .update({
+      token_hash: tokenHash,
+      expires_at: expiresAt.toISOString(),
+      invited_by_id: user.id,
+    })
+    .eq("id", inviteId);
+  if (updErr) return { ok: false, error: updErr.message };
+
+  const [{ data: org }, { data: role }] = await Promise.all([
+    service
+      .from("organizations")
+      .select("name")
+      .eq("id", invite.organization_id)
+      .single(),
+    service.from("roles").select("name").eq("slug", invite.role_slug).single(),
+  ]);
+
+  const acceptUrl = `${SITE_URL}/invite/${token}`;
+  const email = inviteEmail({
+    inviteeEmail: invite.email,
+    inviterName:
+      actorProfile?.full_name ?? actorProfile?.email ?? "A Kerning teammate",
+    organizationName: org?.name ?? "Kerning AI",
+    roleName: role?.name ?? invite.role_slug,
+    acceptUrl,
+    expiresAt,
+  });
+  const send = await sendEmail({
+    to: invite.email,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+  });
+
+  await withAudit(
+    {
+      action: "invite.resent",
+      resourceType: "invite",
+      resourceId: inviteId,
+      organizationId: invite.organization_id,
+      after: { email: invite.email, email_send_ok: send.ok },
+    },
+    async () => null,
+  );
+
+  revalidatePath("/admin/security/users");
+  return { ok: true, data: { acceptUrl } };
+}
+
+// ---------------------------------------------------------------------------
 // acceptInvite
 // ---------------------------------------------------------------------------
 const acceptInviteSchema = z.object({
