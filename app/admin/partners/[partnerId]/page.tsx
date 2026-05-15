@@ -4,11 +4,14 @@ import { notFound, redirect } from "next/navigation";
 import { DeletePartnerButton } from "@/components/admin/DeletePartnerButton";
 import { EditPartnerForm } from "@/components/admin/EditPartnerForm";
 import { InviteUserForm } from "@/components/admin/InviteUserForm";
+import { MemberActions } from "@/components/admin/MemberActions";
+import { ResendInviteButton } from "@/components/admin/ResendInviteButton";
 import { RestorePartnerButton } from "@/components/admin/RestorePartnerButton";
 import { RevokeInviteButton } from "@/components/admin/RevokeInviteButton";
 import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { hasPermissionAny } from "@/lib/auth/require";
+import { createClient } from "@/lib/supabase/server";
 import {
   getPartnerOrgDetail,
   type PartnerInviteRow,
@@ -45,6 +48,11 @@ export default async function PartnerDetailPage({ params }: Props) {
   const { partnerId } = await params;
   const detail = await getPartnerOrgDetail(partnerId);
   if (!detail) notFound();
+
+  const supabase = await createClient();
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser();
 
   const { org, members, invites, projects, leads } = detail;
   const pendingInvites = invites.filter((i) => i.status === "pending");
@@ -96,6 +104,24 @@ export default async function PartnerDetailPage({ params }: Props) {
           <span className="text-[var(--color-text-faint)]">—</span>
         ),
     },
+    {
+      key: "actions",
+      header: "",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (row) => (
+        <MemberActions
+          membershipId={row.membership_id}
+          userId={row.user_id}
+          email={row.email}
+          organizationId={org.id}
+          currentRoleSlug={row.role_slug}
+          status={row.status}
+          isSelf={row.user_id === currentUser?.id}
+          roleOptions={roleOptions}
+        />
+      ),
+    },
   ];
 
   const inviteColumns: DataTableColumn<PartnerInviteRow>[] = [
@@ -116,7 +142,12 @@ export default async function PartnerDetailPage({ params }: Props) {
       header: "",
       headerClassName: "text-right",
       className: "text-right",
-      cell: (row) => <RevokeInviteButton inviteId={row.id} />,
+      cell: (row) => (
+        <span className="inline-flex items-center gap-4">
+          <ResendInviteButton inviteId={row.id} />
+          <RevokeInviteButton inviteId={row.id} />
+        </span>
+      ),
     },
   ];
 

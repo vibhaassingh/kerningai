@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 
 import { InviteClientUserForm } from "@/components/admin/InviteClientUserForm";
 import { InviteUserForm } from "@/components/admin/InviteUserForm";
+import { MemberActions } from "@/components/admin/MemberActions";
+import { ResendInviteButton } from "@/components/admin/ResendInviteButton";
 import { RevokeInviteButton } from "@/components/admin/RevokeInviteButton";
 import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
@@ -42,6 +44,9 @@ export default async function AdminUsersPage() {
   if (!canManage) redirect("/admin");
 
   const supabase = await createClient();
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser();
 
   const [{ data: members }, { data: invites }] = await Promise.all([
     supabase
@@ -64,6 +69,11 @@ export default async function AdminUsersPage() {
   const memberRows = (members ?? []) as MemberRow[];
   const inviteRows = (invites ?? []) as InviteRow[];
   const pendingInvites = inviteRows.filter((i) => i.status === "pending");
+
+  const roleOptions = INTERNAL_ROLES.map((slug) => ({
+    slug,
+    name: ROLE_LABELS[slug],
+  }));
 
   const memberColumns: DataTableColumn<MemberRow>[] = [
     {
@@ -105,6 +115,24 @@ export default async function AdminUsersPage() {
           ? formatRelative(new Date(row.last_login_at))
           : <span className="text-[var(--color-text-faint)]">—</span>,
     },
+    {
+      key: "actions",
+      header: "",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (row) => (
+        <MemberActions
+          membershipId={row.membership_id}
+          userId={row.user_id}
+          email={row.email}
+          organizationId={KERNING_ORG_ID}
+          currentRoleSlug={row.role_slug}
+          status={row.status}
+          isSelf={row.user_id === currentUser?.id}
+          roleOptions={roleOptions}
+        />
+      ),
+    },
   ];
 
   const inviteColumns: DataTableColumn<InviteRow>[] = [
@@ -129,14 +157,14 @@ export default async function AdminUsersPage() {
       header: "",
       headerClassName: "text-right",
       className: "text-right",
-      cell: (row) => <RevokeInviteButton inviteId={row.id} />,
+      cell: (row) => (
+        <span className="inline-flex items-center gap-4">
+          <ResendInviteButton inviteId={row.id} />
+          <RevokeInviteButton inviteId={row.id} />
+        </span>
+      ),
     },
   ];
-
-  const roleOptions = INTERNAL_ROLES.map((slug) => ({
-    slug,
-    name: ROLE_LABELS[slug],
-  }));
 
   const clientRoleOptions = CLIENT_ROLES.map((slug) => ({
     slug,

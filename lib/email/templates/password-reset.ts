@@ -2,38 +2,30 @@ import "server-only";
 
 import { SITE_URL } from "@/lib/env";
 
-export interface InviteEmailInput {
-  inviteeEmail: string;
-  inviterName: string;
+export interface PasswordResetEmailInput {
+  recipientName: string;
   organizationName: string;
-  roleName: string;
-  acceptUrl: string;
-  expiresAt: Date;
+  resetUrl: string;
+  /** Who triggered it, for the body copy. */
+  initiatedByName: string;
 }
 
-export function inviteEmail(input: InviteEmailInput): {
+export function passwordResetEmail(input: PasswordResetEmailInput): {
   subject: string;
   html: string;
   text: string;
 } {
-  const expires = input.expiresAt.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
-  const subject = `${input.inviterName} invited you to Kerning AI`;
+  const subject = "Reset your Kerning AI password";
 
   const text = [
-    `You've been invited to Kerning AI`,
-    `as ${input.roleName}.`,
+    `${input.initiatedByName} started a password reset for your`,
+    `Kerning AI account.`,
     ``,
-    `Accept the invite and set your password:`,
-    input.acceptUrl,
+    `Set a new password:`,
+    input.resetUrl,
     ``,
-    `This link expires on ${expires}.`,
-    ``,
-    `If you weren't expecting this, you can ignore the email.`,
+    `This link is single-use and expires shortly. If you weren't`,
+    `expecting this, you can ignore the email — your password won't change.`,
     ``,
     `— Kerning AI`,
     SITE_URL,
@@ -52,33 +44,33 @@ export function inviteEmail(input: InviteEmailInput): {
                   <strong>KERNING</strong>&nbsp;AI
                 </div>
                 <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;letter-spacing:0.16em;color:#8a857c;text-transform:uppercase;margin-top:4px;">
-                  Workspace invite
+                  Password reset
                 </div>
               </td>
             </tr>
             <tr>
               <td style="padding-bottom:24px;">
                 <h1 style="margin:0;font-family:'Inter Tight','Inter',system-ui,sans-serif;font-size:34px;line-height:1.05;letter-spacing:-0.03em;color:#ece9e2;font-weight:500;">
-                  You've been invited to&nbsp;<em style="color:#f1ad3d;font-style:italic;">Kerning&nbsp;AI</em>.
+                  Reset your&nbsp;<em style="color:#f1ad3d;font-style:italic;">password</em>.
                 </h1>
               </td>
             </tr>
             <tr>
               <td style="padding-bottom:20px;font-size:15px;line-height:1.6;color:rgba(236,233,226,0.85);">
-                ${escapeHtml(input.inviterName)} added you as <strong>${escapeHtml(input.roleName)}</strong> on Kerning AI. Accept the invite to set a password and start using your portal.
+                ${escapeHtml(input.initiatedByName)} started a password reset for your <strong>Kerning AI</strong> account. Click below to choose a new password.
               </td>
             </tr>
             <tr>
               <td style="padding:24px 0 32px 0;">
-                <a href="${escapeAttr(input.acceptUrl)}"
+                <a href="${escapeAttr(input.resetUrl)}"
                    style="display:inline-block;padding:13px 28px;border-radius:9999px;background:#ece9e2;color:#0c0c0e;text-decoration:none;font-weight:500;font-size:14.5px;letter-spacing:-0.005em;">
-                  Accept invite &nbsp;↗
+                  Set a new password &nbsp;↗
                 </a>
               </td>
             </tr>
             <tr>
               <td style="padding-top:24px;border-top:1px solid rgba(236,233,226,0.12);font-size:12px;line-height:1.6;color:#8a857c;">
-                This link expires on ${escapeHtml(expires)}. If you weren't expecting this, you can ignore the email.
+                This link is single-use and expires shortly. If you weren't expecting this, ignore the email — your password won't change.
               </td>
             </tr>
             <tr>
