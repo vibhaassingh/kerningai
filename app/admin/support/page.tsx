@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { CreateTicketForm } from "@/components/admin/CreateTicketForm";
 import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
+import { listClients } from "@/lib/admin/clients";
 import { formatRelative } from "@/lib/admin/format";
 import { listAllTickets, type AdminTicketRow } from "@/lib/admin/support";
 import { hasPermissionAny } from "@/lib/auth/require";
@@ -16,6 +18,11 @@ export default async function AdminSupportPage() {
   const rows = await listAllTickets();
   const open = rows.filter((r) => r.status !== "closed");
   const p1 = open.filter((r) => r.severity === "p1");
+
+  const canManage = await hasPermissionAny("manage_support_tickets");
+  const clients = canManage
+    ? (await listClients()).map((c) => ({ id: c.id, name: c.name }))
+    : [];
 
   const columns: DataTableColumn<AdminTicketRow>[] = [
     {
@@ -94,6 +101,27 @@ export default async function AdminSupportPage() {
         <Tile number="02" label="P1" value={p1.length.toString()} />
         <Tile number="03" label="Closed" value={(rows.length - open.length).toString()} />
       </section>
+
+      {canManage && (
+        <section className="rounded-2xl border border-hairline bg-bg-elev/30 p-8">
+          <Eyebrow number="04">Raise a ticket</Eyebrow>
+          <h2 className="mt-3 text-display text-[clamp(1.4rem,3vw,1.8rem)] font-medium tracking-[-0.02em]">
+            Open one{" "}
+            <span className="italic text-[var(--color-signal)]">
+              on a client&apos;s behalf
+            </span>
+            .
+          </h2>
+          <p className="mt-2 text-[14px] text-[var(--color-text-faded)]">
+            For tickets phoned/emailed in, or proactive issues you spotted.
+            It opens in the client&apos;s workspace; the client sees it in
+            their portal.
+          </p>
+          <div className="mt-8">
+            <CreateTicketForm clients={clients} />
+          </div>
+        </section>
+      )}
 
       <DataTable
         rows={rows}
