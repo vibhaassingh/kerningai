@@ -26,6 +26,7 @@ export async function listPartnerOrgs(): Promise<PartnerOrgRow[]> {
     .from("organizations")
     .select("id, name, slug, region, status, billing_email, created_at")
     .eq("type", "partner")
+    .is("deleted_at", null)
     .order("name", { ascending: true });
 
   if (error || !orgs) return [];
@@ -105,8 +106,28 @@ export async function listPartnerOrgOptions(): Promise<
     .select("id, name")
     .eq("type", "partner")
     .eq("status", "active")
+    .is("deleted_at", null)
     .order("name", { ascending: true });
   return (data ?? []) as { id: string; name: string }[];
+}
+
+/** Soft-deleted partner orgs, for the "Recently deleted" / restore list. */
+export async function listDeletedPartnerOrgs(): Promise<
+  { id: string; name: string; slug: string; deleted_at: string | null }[]
+> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("organizations")
+    .select("id, name, slug, deleted_at")
+    .eq("type", "partner")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+  return (data ?? []) as {
+    id: string;
+    name: string;
+    slug: string;
+    deleted_at: string | null;
+  }[];
 }
 
 export interface PartnerOrgDetail {
@@ -117,6 +138,7 @@ export interface PartnerOrgDetail {
   status: "active" | "suspended" | "archived";
   billing_email: string | null;
   created_at: string;
+  deleted_at: string | null;
 }
 
 export interface PartnerMemberRow {
@@ -171,7 +193,9 @@ export async function getPartnerOrgDetail(
 
   const { data: org } = await supabase
     .from("organizations")
-    .select("id, name, slug, region, status, billing_email, created_at, type")
+    .select(
+      "id, name, slug, region, status, billing_email, created_at, deleted_at, type",
+    )
     .eq("id", partnerId)
     .maybeSingle();
 
@@ -225,6 +249,7 @@ export async function getPartnerOrgDetail(
       status: (org as { status: PartnerOrgDetail["status"] }).status,
       billing_email: (org as { billing_email: string | null }).billing_email,
       created_at: (org as { created_at: string }).created_at,
+      deleted_at: (org as { deleted_at: string | null }).deleted_at,
     },
     members: (membersRes.data ?? []) as PartnerMemberRow[],
     invites: (invitesRes.data ?? []) as PartnerInviteRow[],

@@ -2,10 +2,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { CreatePartnerForm } from "@/components/admin/CreatePartnerForm";
+import { RestorePartnerButton } from "@/components/admin/RestorePartnerButton";
 import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { hasPermissionAny } from "@/lib/auth/require";
-import { listPartnerOrgs, type PartnerOrgRow } from "@/lib/admin/partners";
+import { formatRelative } from "@/lib/admin/format";
+import {
+  listDeletedPartnerOrgs,
+  listPartnerOrgs,
+  type PartnerOrgRow,
+} from "@/lib/admin/partners";
 
 export const metadata = { title: "Partners" };
 export const dynamic = "force-dynamic";
@@ -16,6 +22,7 @@ export default async function AdminPartnersPage() {
   const canCreate = await hasPermissionAny("manage_clients");
 
   const rows = await listPartnerOrgs();
+  const deleted = canCreate ? await listDeletedPartnerOrgs() : [];
 
   const columns: DataTableColumn<PartnerOrgRow>[] = [
     {
@@ -117,6 +124,35 @@ export default async function AdminPartnersPage() {
           <div className="mt-8">
             <CreatePartnerForm />
           </div>
+        </section>
+      )}
+
+      {canCreate && deleted.length > 0 && (
+        <section className="space-y-4">
+          <Eyebrow number="02">Recently deleted</Eyebrow>
+          <p className="text-[13px] text-[var(--color-text-faded)]">
+            Deleted partners are hidden everywhere but recoverable. Restoring
+            brings the org, its team and referred-project links back.
+          </p>
+          <ul className="divide-y divide-hairline overflow-hidden rounded-2xl border border-hairline bg-bg-elev/30">
+            {deleted.map((d) => (
+              <li
+                key={d.id}
+                className="flex flex-wrap items-center justify-between gap-4 px-6 py-4"
+              >
+                <div className="space-y-0.5">
+                  <p className="text-text">{d.name}</p>
+                  <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+                    {d.slug}
+                    {d.deleted_at
+                      ? ` · deleted ${formatRelative(d.deleted_at)}`
+                      : ""}
+                  </p>
+                </div>
+                <RestorePartnerButton partnerId={d.id} />
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </div>

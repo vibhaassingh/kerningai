@@ -61,4 +61,7 @@ export async function switchOrg(
   redirect(parsed.data.redirectTo ?? fallback);
 }
 
-export const SELECTED_ORG_COOKIE_NAME = SELECTED_ORG_COOKIE;
+// NOTE: a "use server" module may ONLY export async functions. The cookie
+// name lives privately above (and is duplicated in lib/tenancy/current-org.ts
+// which reads it). Do NOT add non-function exports here — Next.js will 500
+// the entire server-action graph app-wide ("can only export async functions").
