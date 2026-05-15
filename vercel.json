@@ -1,0 +1,29 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/stale-invites",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/expire-recommendations",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/client-health",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/agents/run/maintenance_forecast",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/agents/run/energy_optimization",
+      "schedule": "30 */4 * * *"
+    },
+    {
+      "path": "/api/agents/run/cold_chain_monitor",
+      "schedule": "*/30 * * * *"
+    }
+  ]
+}

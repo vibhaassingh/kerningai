@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
 
 /* ─────────────────────────────────────────────────────────────────────
    Kerning AI · family editorial theme + signal accent
@@ -36,6 +37,19 @@
 
   --color-glass-fill: rgba(236, 233, 226, 0.06);
   --color-glass-fill-strong: rgba(236, 233, 226, 0.10);
+
+  /* Workflow canvas semantic tokens — node colors per type. Warm-shifted
+     so they don't fight the family palette. */
+  --color-canvas-process: rgba(236, 233, 226, 0.65);
+  --color-canvas-approval: var(--color-signal);
+  --color-canvas-document: #6ea7d8;
+  --color-canvas-data: #8fa3c6;
+  --color-canvas-pain: #e57373;
+  --color-canvas-ai: #b294d8;
+  --color-canvas-erp-module: #7fbf9e;
+  --color-canvas-decision: #d8a05f;
+  --color-canvas-external: var(--color-text-muted);
+  --color-canvas-system: #5fb0c2;
 
   --font-display: var(--font-display), "Inter Tight", "Inter", system-ui, sans-serif;
   --font-body: var(--font-body), "Inter", system-ui, sans-serif;

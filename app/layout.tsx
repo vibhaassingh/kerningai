@@ -156,6 +156,9 @@ const organizationSchema = {
     "https://arch.kerning.ooo",
     "https://hospitality.kerning.ooo",
     "https://www.linkedin.com/company/kerning-ai/",
+    "https://github.com/vibhaassingh/kerningai",
+    "https://github.com/vibhaassingh/agent-protocols",
+    "https://github.com/vibhaassingh/industry5-ontology",
   ],
 };
 
