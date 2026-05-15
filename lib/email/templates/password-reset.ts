@@ -18,8 +18,8 @@ export function passwordResetEmail(input: PasswordResetEmailInput): {
   const subject = "Reset your Kerning AI password";
 
   const text = [
-    `${input.initiatedByName} started a password reset for your Kerning AI`,
-    `account (${input.organizationName}).`,
+    `${input.initiatedByName} started a password reset for your`,
+    `Kerning AI account.`,
     ``,
     `Set a new password:`,
     input.resetUrl,
@@ -57,7 +57,7 @@ export function passwordResetEmail(input: PasswordResetEmailInput): {
             </tr>
             <tr>
               <td style="padding-bottom:20px;font-size:15px;line-height:1.6;color:rgba(236,233,226,0.85);">
-                ${escapeHtml(input.initiatedByName)} started a password reset for your Kerning AI account in <strong>${escapeHtml(input.organizationName)}</strong>. Click below to choose a new password.
+                ${escapeHtml(input.initiatedByName)} started a password reset for your <strong>Kerning AI</strong> account. Click below to choose a new password.
               </td>
             </tr>
             <tr>

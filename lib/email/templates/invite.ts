@@ -22,10 +22,10 @@ export function inviteEmail(input: InviteEmailInput): {
     year: "numeric",
   });
 
-  const subject = `${input.inviterName} invited you to ${input.organizationName} on Kerning AI`;
+  const subject = `${input.inviterName} invited you to Kerning AI`;
 
   const text = [
-    `You've been invited to join ${input.organizationName} on Kerning AI`,
+    `You've been invited to Kerning AI`,
     `as ${input.roleName}.`,
     ``,
     `Accept the invite and set your password:`,
@@ -59,13 +59,13 @@ export function inviteEmail(input: InviteEmailInput): {
             <tr>
               <td style="padding-bottom:24px;">
                 <h1 style="margin:0;font-family:'Inter Tight','Inter',system-ui,sans-serif;font-size:34px;line-height:1.05;letter-spacing:-0.03em;color:#ece9e2;font-weight:500;">
-                  You've been invited to&nbsp;<em style="color:#f1ad3d;font-style:italic;">${escapeHtml(input.organizationName)}</em>.
+                  You've been invited to&nbsp;<em style="color:#f1ad3d;font-style:italic;">Kerning&nbsp;AI</em>.
                 </h1>
               </td>
             </tr>
             <tr>
               <td style="padding-bottom:20px;font-size:15px;line-height:1.6;color:rgba(236,233,226,0.85);">
-                ${escapeHtml(input.inviterName)} added you as <strong>${escapeHtml(input.roleName)}</strong> in the Kerning AI workspace. Accept the invite to set a password and start using your portal.
+                ${escapeHtml(input.inviterName)} added you as <strong>${escapeHtml(input.roleName)}</strong> on Kerning AI. Accept the invite to set a password and start using your portal.
               </td>
             </tr>
             <tr>
