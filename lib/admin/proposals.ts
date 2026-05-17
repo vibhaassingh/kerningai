@@ -199,6 +199,42 @@ export async function getProposalDetail(
   };
 }
 
+export interface ProposalComment {
+  id: string;
+  body: string;
+  created_at: string;
+  author_name: string;
+}
+
+/**
+ * The shared comment thread for a proposal. RLS
+ * (`proposal_comments_read` → `app.proposal_visible`) scopes this to
+ * internal staff, the client members, and the referring partner.
+ */
+export async function listProposalComments(
+  proposalId: string,
+): Promise<ProposalComment[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("proposal_comments")
+    .select("id, body, created_at, author:app_users(full_name, email)")
+    .eq("proposal_id", proposalId)
+    .order("created_at", { ascending: true });
+
+  type Row = {
+    id: string;
+    body: string;
+    created_at: string;
+    author: { full_name: string | null; email: string } | null;
+  };
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    id: r.id,
+    body: r.body,
+    created_at: r.created_at,
+    author_name: r.author?.full_name ?? r.author?.email ?? "Someone",
+  }));
+}
+
 export async function getLatestProposalForProject(
   projectId: string,
 ): Promise<{ id: string; version: number; status: ProposalStatus } | null> {

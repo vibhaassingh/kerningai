@@ -324,11 +324,27 @@
 }
 
 @media print {
+  /* A4 with comfortable margins; @page owns the page edges so the
+   * container padding doesn't double up and pagination stays clean. */
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+  html,
   body {
     background: #ffffff !important;
   }
   .proposal-print {
+    padding: 0 !important;
+    max-width: none !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  /* Repeat table headers across page breaks; never split a row. */
+  .proposal-print thead {
+    display: table-header-group;
+  }
+  .proposal-print tr {
+    break-inside: avoid;
   }
 }

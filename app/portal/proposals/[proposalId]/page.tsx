@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { ProposalView } from "@/components/admin/ProposalView";
+import { ProposalComments } from "@/components/proposal/ProposalComments";
 import { ProposalDecision } from "@/components/portal/ProposalDecision";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
-import { getProposalDetail } from "@/lib/admin/proposals";
+import { getProposalDetail, listProposalComments } from "@/lib/admin/proposals";
 import { getPortalContext } from "@/lib/portal/team";
 
 export const metadata = { title: "Proposal" };
@@ -25,6 +26,8 @@ export default async function PortalProposalPage({ params }: PageProps) {
   // result means it doesn't exist for this client or isn't sent yet.
   if (!proposal) notFound();
   if (proposal.organization_id !== ctx.organizationId) notFound();
+
+  const comments = await listProposalComments(proposal.id);
 
   return (
     <div className="space-y-12">
@@ -67,6 +70,7 @@ export default async function PortalProposalPage({ params }: PageProps) {
       )}
 
       <ProposalView proposal={proposal} audience="client" />
+      <ProposalComments proposalId={proposal.id} comments={comments} />
     </div>
   );
 }

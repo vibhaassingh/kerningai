@@ -10,9 +10,11 @@ import { ProposalRisksEditor } from "@/components/admin/ProposalRisksEditor";
 import { ProposalScopeEditor } from "@/components/admin/ProposalScopeEditor";
 import { ProposalStatusControls } from "@/components/admin/ProposalStatusControls";
 import { ProposalView } from "@/components/admin/ProposalView";
+import { ProposalComments } from "@/components/proposal/ProposalComments";
 import { hasPermissionAny } from "@/lib/auth/require";
 import {
   getProposalDetail,
+  listProposalComments,
   listProposalsForProject,
 } from "@/lib/admin/proposals";
 import { getProject } from "@/lib/projects/projects";
@@ -35,6 +37,7 @@ export default async function ProposalPage({ params }: Props) {
 
   const latest = proposals[0] ?? null;
   const detail = latest ? await getProposalDetail(latest.id) : null;
+  const comments = detail ? await listProposalComments(detail.id) : [];
   const editable =
     detail != null &&
     canManage &&
@@ -189,6 +192,12 @@ export default async function ProposalPage({ params }: Props) {
             <Eyebrow number="07">Document preview</Eyebrow>
             <ProposalView proposal={detail} audience="admin" />
           </section>
+
+          <ProposalComments
+            proposalId={detail.id}
+            comments={comments}
+            eyebrow="08"
+          />
         </>
       )}
     </div>
