@@ -85,6 +85,19 @@ export async function generateProposalForProject(
   if (nodes.length === 0) {
     return { ok: false, error: "The combined canvas has no nodes to derive from." };
   }
+  // A proposal scopes the *proposed* work. Without any proposed-ERP or
+  // AI nodes the derivation would emit a misleading "0 system processes"
+  // proposal, so refuse until the future-state workflow exists.
+  const hasProposedWork = nodes.some(
+    (n) => n.phase === "proposed_erp" || n.phase === "erp_ai",
+  );
+  if (!hasProposedWork) {
+    return {
+      ok: false,
+      error:
+        "The canvas has no proposed ERP or AI nodes yet — build the proposed workflow before generating a proposal.",
+    };
+  }
 
   const draft = deriveProposalFromCanvas({
     nodes,
@@ -131,7 +144,7 @@ export async function generateProposalForProject(
     };
   }
 
-  await Promise.all([
+  const childInserts = [
     service.from("proposal_phases").insert(
       draft.phases.map((p, idx) => ({
         proposal_id: created.id,
@@ -144,17 +157,6 @@ export async function generateProposalForProject(
         price: p.price,
       })),
     ),
-    draft.modules.length > 0 &&
-      service.from("proposal_modules").insert(
-        draft.modules.map((m, idx) => ({
-          proposal_id: created.id,
-          module_slug: m.slug,
-          module_name: m.name,
-          rationale: m.rationale,
-          emphasis: m.emphasis,
-          position: idx,
-        })),
-      ),
     service.from("proposal_scope_items").insert(
       draft.scopeItems.map((s, idx) => ({
         proposal_id: created.id,
@@ -185,7 +187,22 @@ export async function generateProposalForProject(
         position: idx,
       })),
     ),
-  ]);
+  ];
+  if (draft.modules.length > 0) {
+    childInserts.push(
+      service.from("proposal_modules").insert(
+        draft.modules.map((m, idx) => ({
+          proposal_id: created.id,
+          module_slug: m.slug,
+          module_name: m.name,
+          rationale: m.rationale,
+          emphasis: m.emphasis,
+          position: idx,
+        })),
+      ),
+    );
+  }
+  await Promise.all(childInserts);
 
   await withAudit(
     {
@@ -696,15 +713,23 @@ export async function decideProposal(
     return { ok: false, error: "Not permitted to decide this proposal." };
   }
 
-  const { error } = await service
+  // Atomic guard: only transition a still-`sent` row. If a concurrent
+  // request already decided it, zero rows match and we bail — this
+  // closes the check-then-update race.
+  const { data: decided, error } = await service
     .from("proposals")
     .update({
       status: parsed.data.decision,
       decided_at: new Date().toISOString(),
       decided_by_id: user.id,
     })
-    .eq("id", parsed.data.proposalId);
+    .eq("id", parsed.data.proposalId)
+    .eq("status", "sent")
+    .select("id");
   if (error) return { ok: false, error: error.message };
+  if (!decided || decided.length === 0) {
+    return { ok: false, error: "This proposal has already been decided." };
+  }
 
   if (parsed.data.decision === "accepted") {
     await service
