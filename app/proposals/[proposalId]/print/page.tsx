@@ -19,7 +19,7 @@ export default async function ProposalPrintPage({ params }: PageProps) {
   if (!proposal) notFound();
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12 print:py-0">
+    <main className="proposal-print mx-auto min-h-screen max-w-4xl px-6 py-12 print:py-0">
       <header className="mb-10 flex items-start justify-between gap-6">
         <div className="space-y-1">
           <p className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-[var(--color-signal)]">

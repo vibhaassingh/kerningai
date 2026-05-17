@@ -373,6 +373,203 @@ export async function saveProposalCommercials(
 }
 
 // ---------------------------------------------------------------------------
+// Replace the delivery phases.
+// ---------------------------------------------------------------------------
+const phaseRow = z.object({
+  name: z.string().min(1),
+  description: z.string().nullable().optional(),
+  duration_weeks: z.number().int().nonnegative(),
+  owners: z.array(z.string()),
+  deliverables: z.array(z.string()),
+  price: z.number().nonnegative().nullable().optional(),
+});
+
+const scopeRow = z.object({
+  kind: z.enum(["in_scope", "out_of_scope", "assumption", "dependency"]),
+  description: z.string().min(1),
+});
+
+const riskRow = z.object({
+  category: z.string().min(1),
+  description: z.string().min(1),
+  severity: z.enum(["low", "medium", "high", "critical"]),
+  mitigation: z.string().nullable().optional(),
+});
+
+async function loadEditable(
+  proposalId: string,
+): Promise<
+  | { ok: false; error: string }
+  | {
+      ok: true;
+      project_id: string;
+      organization_id: string | null;
+      service: ReturnType<typeof createServiceClient>;
+    }
+> {
+  if (!(await hasPermissionAny("manage_proposals"))) {
+    return { ok: false, error: "Not permitted to manage proposals." };
+  }
+  await requireUser();
+  const service = createServiceClient();
+  const { data: existing } = await service
+    .from("proposals")
+    .select("id, status, project_id, organization_id")
+    .eq("id", proposalId)
+    .maybeSingle();
+  if (!existing) return { ok: false, error: "Proposal not found." };
+  if (existing.status !== "draft" && existing.status !== "internal_review") {
+    return { ok: false, error: "Only draft or in-review proposals are editable." };
+  }
+  return {
+    ok: true,
+    project_id: existing.project_id as string,
+    organization_id: existing.organization_id as string | null,
+    service,
+  };
+}
+
+function parseRows<T>(
+  formData: FormData,
+  schema: z.ZodType<T[]>,
+): { ok: true; rows: T[] } | { ok: false } {
+  try {
+    return {
+      ok: true,
+      rows: schema.parse(JSON.parse(String(formData.get("rows") ?? "[]"))),
+    };
+  } catch {
+    return { ok: false };
+  }
+}
+
+export async function saveProposalPhases(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const proposalId = formData.get("proposalId");
+  if (typeof proposalId !== "string") return { ok: false, error: "Missing proposal." };
+  const parsed = parseRows(formData, z.array(phaseRow));
+  if (!parsed.ok) return { ok: false, error: "Phases are malformed." };
+
+  const ctx = await loadEditable(proposalId);
+  if (!ctx.ok) return ctx;
+
+  await ctx.service.from("proposal_phases").delete().eq("proposal_id", proposalId);
+  if (parsed.rows.length > 0) {
+    const { error } = await ctx.service.from("proposal_phases").insert(
+      parsed.rows.map((p, idx) => ({
+        proposal_id: proposalId,
+        position: idx,
+        name: p.name,
+        description: p.description ?? null,
+        duration_weeks: p.duration_weeks,
+        owners: p.owners.filter(Boolean),
+        deliverables: p.deliverables.filter(Boolean),
+        price: p.price ?? null,
+      })),
+    );
+    if (error) return { ok: false, error: error.message };
+  }
+
+  await withAudit(
+    {
+      action: "proposal.phases_updated",
+      resourceType: "proposal",
+      resourceId: proposalId,
+      organizationId: ctx.organization_id ?? undefined,
+      after: { phases: parsed.rows.length },
+    },
+    async () => null,
+  );
+  revalidateProposal(ctx.organization_id, ctx.project_id, proposalId);
+  return { ok: true };
+}
+
+export async function saveProposalScope(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const proposalId = formData.get("proposalId");
+  if (typeof proposalId !== "string") return { ok: false, error: "Missing proposal." };
+  const parsed = parseRows(formData, z.array(scopeRow));
+  if (!parsed.ok) return { ok: false, error: "Scope items are malformed." };
+
+  const ctx = await loadEditable(proposalId);
+  if (!ctx.ok) return ctx;
+
+  await ctx.service
+    .from("proposal_scope_items")
+    .delete()
+    .eq("proposal_id", proposalId);
+  if (parsed.rows.length > 0) {
+    const { error } = await ctx.service.from("proposal_scope_items").insert(
+      parsed.rows.map((s, idx) => ({
+        proposal_id: proposalId,
+        kind: s.kind,
+        description: s.description,
+        position: idx,
+      })),
+    );
+    if (error) return { ok: false, error: error.message };
+  }
+
+  await withAudit(
+    {
+      action: "proposal.scope_updated",
+      resourceType: "proposal",
+      resourceId: proposalId,
+      organizationId: ctx.organization_id ?? undefined,
+      after: { items: parsed.rows.length },
+    },
+    async () => null,
+  );
+  revalidateProposal(ctx.organization_id, ctx.project_id, proposalId);
+  return { ok: true };
+}
+
+export async function saveProposalRisks(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const proposalId = formData.get("proposalId");
+  if (typeof proposalId !== "string") return { ok: false, error: "Missing proposal." };
+  const parsed = parseRows(formData, z.array(riskRow));
+  if (!parsed.ok) return { ok: false, error: "Risks are malformed." };
+
+  const ctx = await loadEditable(proposalId);
+  if (!ctx.ok) return ctx;
+
+  await ctx.service.from("proposal_risks").delete().eq("proposal_id", proposalId);
+  if (parsed.rows.length > 0) {
+    const { error } = await ctx.service.from("proposal_risks").insert(
+      parsed.rows.map((r, idx) => ({
+        proposal_id: proposalId,
+        category: r.category,
+        description: r.description,
+        severity: r.severity,
+        mitigation: r.mitigation ?? null,
+        position: idx,
+      })),
+    );
+    if (error) return { ok: false, error: error.message };
+  }
+
+  await withAudit(
+    {
+      action: "proposal.risks_updated",
+      resourceType: "proposal",
+      resourceId: proposalId,
+      organizationId: ctx.organization_id ?? undefined,
+      after: { risks: parsed.rows.length },
+    },
+    async () => null,
+  );
+  revalidateProposal(ctx.organization_id, ctx.project_id, proposalId);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
 // Internal status transitions (draft → internal_review → sent / archived).
 // ---------------------------------------------------------------------------
 const ALLOWED: Record<string, string[]> = {

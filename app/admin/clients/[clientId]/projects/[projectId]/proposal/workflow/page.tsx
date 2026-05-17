@@ -5,6 +5,9 @@ import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { GenerateProposalButton } from "@/components/admin/GenerateProposalButton";
 import { ProposalBasicsForm } from "@/components/admin/ProposalBasicsForm";
 import { ProposalCommercialsEditor } from "@/components/admin/ProposalCommercialsEditor";
+import { ProposalPhasesEditor } from "@/components/admin/ProposalPhasesEditor";
+import { ProposalRisksEditor } from "@/components/admin/ProposalRisksEditor";
+import { ProposalScopeEditor } from "@/components/admin/ProposalScopeEditor";
 import { ProposalStatusControls } from "@/components/admin/ProposalStatusControls";
 import { ProposalView } from "@/components/admin/ProposalView";
 import { hasPermissionAny } from "@/lib/auth/require";
@@ -139,11 +142,51 @@ export default async function ProposalPage({ params }: Props) {
                   }))}
                 />
               </div>
+              <div className="space-y-4 border-t border-hairline pt-8">
+                <Eyebrow number="04">Edit phases</Eyebrow>
+                <ProposalPhasesEditor
+                  proposalId={detail.id}
+                  phases={detail.phases.map((p) => ({
+                    name: p.name,
+                    description: p.description,
+                    duration_weeks: p.duration_weeks,
+                    owners: p.owners,
+                    deliverables: p.deliverables,
+                    price: p.price,
+                  }))}
+                />
+              </div>
+              <div className="space-y-4 border-t border-hairline pt-8">
+                <Eyebrow number="05">Edit scope</Eyebrow>
+                <ProposalScopeEditor
+                  proposalId={detail.id}
+                  items={detail.scope_items.map((s) => ({
+                    kind: s.kind,
+                    description: s.description,
+                  }))}
+                />
+              </div>
+              <div className="space-y-4 border-t border-hairline pt-8">
+                <Eyebrow number="06">Edit risks</Eyebrow>
+                <ProposalRisksEditor
+                  proposalId={detail.id}
+                  risks={detail.risks.map((r) => ({
+                    category: r.category,
+                    description: r.description,
+                    severity: r.severity as
+                      | "low"
+                      | "medium"
+                      | "high"
+                      | "critical",
+                    mitigation: r.mitigation,
+                  }))}
+                />
+              </div>
             </section>
           )}
 
           <section className="space-y-4">
-            <Eyebrow number="04">Document preview</Eyebrow>
+            <Eyebrow number="07">Document preview</Eyebrow>
             <ProposalView proposal={detail} audience="admin" />
           </section>
         </>
