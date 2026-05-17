@@ -6,7 +6,7 @@ import { PortalBrand } from "@/components/chrome/portal/PortalBrand";
 import { SidebarNav, type SidebarSection } from "@/components/chrome/portal/SidebarNav";
 import { TopBar } from "@/components/chrome/portal/TopBar";
 import { ROLE_LABELS } from "@/lib/rbac/labels";
-import { createClient } from "@/lib/supabase/server";
+import { getRequestProfile, getRequestUser } from "@/lib/auth/request-session";
 import { getCurrentMembership, getUserMemberships } from "@/lib/tenancy/current-org";
 
 const ADMIN_NAV: SidebarSection[] = [
@@ -48,28 +48,21 @@ const ADMIN_NAV: SidebarSection[] = [
 ];
 
 export async function AdminShell({ children }: { children: ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login?returnTo=/admin");
 
-  const memberships = await getUserMemberships();
+  const [memberships, profile] = await Promise.all([
+    getUserMemberships(),
+    getRequestProfile(),
+  ]);
   const internal = memberships.find((m) => m.organizationType === "internal");
   if (!internal) {
     // Authenticated but not internal staff — bounce to client portal.
     redirect("/portal");
   }
-  const current = (await getCurrentMembership()) ?? internal;
-
-  // Load profile basics.
-  const { data: profile } = await supabase
-    .from("app_users")
-    .select("full_name, email")
-    .eq("id", user.id)
-    .maybeSingle();
-
   if (!profile) notFound();
+
+  const current = (await getCurrentMembership()) ?? internal;
 
   return (
     <div className="grid min-h-dvh grid-cols-[260px_1fr] bg-bg text-text">
