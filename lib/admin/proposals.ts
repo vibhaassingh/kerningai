@@ -26,6 +26,63 @@ export interface ProposalListRow {
   updated_at: string;
 }
 
+export interface ProposalIndexRow {
+  id: string;
+  project_id: string;
+  client_org_id: string | null;
+  client_name: string;
+  project_name: string;
+  version: number;
+  status: ProposalStatus;
+  title: string;
+  currency: string;
+  total_amount: number;
+  updated_at: string;
+}
+
+/**
+ * Every proposal across all clients/projects — the admin index. RLS
+ * (`proposals_internal_read`) already scopes this to internal staff.
+ */
+export async function listAllProposals(): Promise<ProposalIndexRow[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("proposals")
+    .select(
+      "id, project_id, organization_id, version, status, title, currency, total_amount, updated_at, project:projects(name), client:organizations(name)",
+    )
+    .order("updated_at", { ascending: false })
+    .limit(300);
+
+  type Row = {
+    id: string;
+    project_id: string;
+    organization_id: string | null;
+    version: number;
+    status: ProposalStatus;
+    title: string;
+    currency: string;
+    total_amount: number;
+    updated_at: string;
+    project: { name: string } | null;
+    client: { name: string } | null;
+  };
+
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    id: r.id,
+    project_id: r.project_id,
+    client_org_id: r.organization_id,
+    client_name: r.client?.name ?? "—",
+    project_name: r.project?.name ?? "—",
+    version: r.version,
+    status: r.status,
+    title: r.title,
+    currency: r.currency,
+    total_amount: r.total_amount,
+    updated_at: r.updated_at,
+  }));
+}
+
 export async function listProposalsForProject(
   projectId: string,
 ): Promise<ProposalListRow[]> {

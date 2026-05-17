@@ -18,6 +18,7 @@ const ADMIN_NAV: SidebarSection[] = [
       { number: "02b", href: "/admin/partners", label: "Partners" },
       { number: "03", href: "/admin/leads", label: "Sales CRM" },
       { number: "04", href: "/admin/questionnaires/submissions", label: "Discovery" },
+      { number: "04b", href: "/admin/proposals", label: "Proposals" },
     ],
   },
   {
