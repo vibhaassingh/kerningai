@@ -58,7 +58,8 @@ export async function listPortalMembers(clientId: string): Promise<PortalMember[
       "membership_id, user_id, email, full_name, role_slug, role_name, status, last_login_at, accepted_at",
     )
     .eq("organization_id", clientId)
-    .order("status", { ascending: true });
+    .order("status", { ascending: true })
+    .limit(200);
   return (data ?? []) as PortalMember[];
 }
 

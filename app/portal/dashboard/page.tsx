@@ -6,7 +6,10 @@ import { RecommendationCard } from "@/components/portal/RecommendationCard";
 import { HealthBandBadge } from "@/components/portal/HealthBandBadge";
 import { formatRelative } from "@/lib/admin/format";
 import { listAssetsForClient } from "@/lib/portal/maintenance";
-import { listPendingRecommendations } from "@/lib/portal/agents";
+import {
+  countPendingRecommendations,
+  listPendingRecommendations,
+} from "@/lib/portal/agents";
 import { getPortalContext } from "@/lib/portal/team";
 
 export const metadata = { title: "Dashboard" };
@@ -16,18 +19,19 @@ export default async function PortalDashboardPage() {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal");
 
-  const [assets, pendingRecs] = await Promise.all([
+  // Pending counts come from cheap count queries; only the 3 cards we
+  // render are fetched as rows. (Asset counts still scan all assets —
+  // that's the deferred latest-health RPC, not bounded here.)
+  const [assets, pendingCount, topRecs] = await Promise.all([
     listAssetsForClient(ctx.organizationId),
-    listPendingRecommendations(ctx.organizationId),
+    countPendingRecommendations(ctx.organizationId),
+    listPendingRecommendations(ctx.organizationId, { limit: 3 }),
   ]);
 
   const atRisk = assets.filter(
     (a) => a.status === "at_risk" || a.health_band === "at_risk" || a.health_band === "critical",
   );
   const watch = assets.filter((a) => a.status === "watch" || a.health_band === "watch");
-  const critical = pendingRecs.filter(
-    (r) => r.risk_level === "critical_approval" || r.risk_level === "blocked",
-  );
   const topAlerts = [...atRisk, ...watch].slice(0, 4);
 
   return (
@@ -43,8 +47,8 @@ export default async function PortalDashboardPage() {
         <Tile
           number="01"
           label="Pending approvals"
-          value={pendingRecs.length.toString()}
-          hint={`${critical.length} critical`}
+          value={pendingCount.total.toString()}
+          hint={`${pendingCount.critical} critical`}
           link={{ href: "/portal/agents/inbox", label: "Inbox ↗" }}
         />
         <Tile
@@ -78,13 +82,13 @@ export default async function PortalDashboardPage() {
               See all ↗
             </Link>
           </header>
-          {pendingRecs.length === 0 ? (
+          {topRecs.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-hairline bg-bg-elev/20 px-6 py-12 text-center text-[14px] text-[var(--color-text-muted)]">
               No agent recommendations right now.
             </p>
           ) : (
             <div className="space-y-5">
-              {pendingRecs.slice(0, 3).map((rec) => (
+              {topRecs.map((rec) => (
                 <RecommendationCard key={rec.id} rec={rec} compact />
               ))}
             </div>
