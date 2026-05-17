@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { ModuleStub } from "@/components/portal/ModuleStub";
-import { hasPermissionAny } from "@/lib/auth/require";
+import { hasPermissionForOrg } from "@/lib/auth/require";
 import { getPortalContext } from "@/lib/portal/team";
 
 export const metadata = { title: "Integrations" };
@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 export default async function PortalIntegrationsPage() {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal");
-  if (!(await hasPermissionAny("view_integrations"))) redirect("/portal/dashboard");
+  if (!(await hasPermissionForOrg("view_integrations", ctx.organizationId)))
+    redirect("/portal/dashboard");
 
   return (
     <ModuleStub

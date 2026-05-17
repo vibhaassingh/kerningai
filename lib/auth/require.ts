@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -115,3 +116,24 @@ export async function hasPermissionAny(
   if (error) return false;
   return data === true;
 }
+
+/**
+ * Org-scoped permission check — true if the user holds `permission`
+ * within the specific `orgId`. Same RPC as `requirePermission` but
+ * returns a boolean (no throw, no redirect) for page-level UI gating,
+ * and is request-memoized per (permission, orgId).
+ */
+export const hasPermissionForOrg = cache(
+  async (permission: PermissionSlug, orgId: string): Promise<boolean> => {
+    const user = await getRequestUser();
+    if (!user) return false;
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.rpc("has_permission", {
+      p_permission: permission,
+      p_org_id: orgId,
+    });
+    if (error) return false;
+    return data === true;
+  },
+);

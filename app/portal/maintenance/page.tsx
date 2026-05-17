@@ -5,7 +5,7 @@ import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { HealthBandBadge } from "@/components/portal/HealthBandBadge";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { formatRelative } from "@/lib/admin/format";
-import { hasPermissionAny } from "@/lib/auth/require";
+import { hasPermissionForOrg } from "@/lib/auth/require";
 import {
   listAssetsForClient,
   type AssetWithHealth,
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function PortalMaintenancePage() {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal");
-  if (!(await hasPermissionAny("view_maintenance"))) {
+  if (!(await hasPermissionForOrg("view_maintenance", ctx.organizationId))) {
     redirect("/portal/dashboard");
   }
 

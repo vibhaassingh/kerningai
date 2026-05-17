@@ -12,7 +12,7 @@ import {
   type PortalPendingInvite,
 } from "@/lib/portal/team";
 import { formatRelative } from "@/lib/admin/format";
-import { hasPermissionAny } from "@/lib/auth/require";
+import { hasPermissionForOrg } from "@/lib/auth/require";
 import { CLIENT_ROLES } from "@/lib/rbac/roles";
 import { ROLE_LABELS } from "@/lib/rbac/labels";
 
@@ -23,7 +23,7 @@ export default async function PortalTeamPage() {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal/dashboard");
 
-  const canManage = await hasPermissionAny("manage_users");
+  const canManage = await hasPermissionForOrg("manage_users", ctx.organizationId);
 
   const [members, invites] = await Promise.all([
     listPortalMembers(ctx.organizationId),

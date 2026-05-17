@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { HealthBandBadge } from "@/components/portal/HealthBandBadge";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { formatDate, formatRelative } from "@/lib/admin/format";
-import { hasPermissionAny } from "@/lib/auth/require";
+import { hasPermissionForOrg } from "@/lib/auth/require";
 import {
   getAssetDetail,
   listRecommendationsForAsset,
@@ -21,7 +21,7 @@ interface PageProps {
 export default async function PortalAssetPage({ params }: PageProps) {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal");
-  if (!(await hasPermissionAny("view_maintenance"))) {
+  if (!(await hasPermissionForOrg("view_maintenance", ctx.organizationId))) {
     redirect("/portal/dashboard");
   }
 

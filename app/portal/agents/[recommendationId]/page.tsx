@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { AgentDecisionForm } from "@/components/portal/AgentDecisionForm";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { formatRelative } from "@/lib/admin/format";
-import { hasPermissionAny } from "@/lib/auth/require";
+import { hasPermissionForOrg } from "@/lib/auth/require";
 import { getRecommendationDetail } from "@/lib/portal/agents";
 import { getPortalContext } from "@/lib/portal/team";
 
@@ -24,7 +24,8 @@ export default async function RecommendationPage({ params }: PageProps) {
   if (!rec) notFound();
 
   const canDecide =
-    rec.status === "pending" && (await hasPermissionAny("approve_agent_actions"));
+    rec.status === "pending" &&
+    (await hasPermissionForOrg("approve_agent_actions", ctx.organizationId));
 
   return (
     <div className="space-y-12">

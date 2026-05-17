@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { Eyebrow } from "@/components/primitives/Eyebrow";
-import { hasPermissionAny } from "@/lib/auth/require";
+import { hasPermissionForOrg } from "@/lib/auth/require";
 import { listLatestMetrics } from "@/lib/portal/decision-intelligence";
 import { getPortalContext } from "@/lib/portal/team";
 
@@ -20,7 +20,8 @@ const CATEGORY_LABEL: Record<string, string> = {
 export default async function PortalDIPage() {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal");
-  if (!(await hasPermissionAny("view_decision_intelligence"))) redirect("/portal/dashboard");
+  if (!(await hasPermissionForOrg("view_decision_intelligence", ctx.organizationId)))
+    redirect("/portal/dashboard");
 
   const metrics = await listLatestMetrics(ctx.organizationId);
   const byCategory = new Map<string, typeof metrics>();
