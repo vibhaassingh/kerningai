@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -15,24 +16,14 @@ import { getPortalContext } from "@/lib/portal/team";
 export const metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
 
+// Each region streams behind its own <Suspense>: the cheap agent-signals
+// card no longer waits on the slower asset-health RPC. listAssetsForClient
+// is request-memoized (React cache), so StatTiles + AssetSpotlight still
+// issue exactly one asset query per request.
 export default async function PortalDashboardPage() {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal");
-
-  // Pending counts come from cheap count queries; only the 3 cards we
-  // render are fetched as rows. (Asset counts still scan all assets —
-  // that's the deferred latest-health RPC, not bounded here.)
-  const [assets, pendingCount, topRecs] = await Promise.all([
-    listAssetsForClient(ctx.organizationId),
-    countPendingRecommendations(ctx.organizationId),
-    listPendingRecommendations(ctx.organizationId, { limit: 3 }),
-  ]);
-
-  const atRisk = assets.filter(
-    (a) => a.status === "at_risk" || a.health_band === "at_risk" || a.health_band === "critical",
-  );
-  const watch = assets.filter((a) => a.status === "watch" || a.health_band === "watch");
-  const topAlerts = [...atRisk, ...watch].slice(0, 4);
+  const orgId = ctx.organizationId;
 
   return (
     <div className="space-y-14">
@@ -43,97 +34,140 @@ export default async function PortalDashboardPage() {
         </h1>
       </header>
 
-      <section className="grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
-        <Tile
-          number="01"
-          label="Pending approvals"
-          value={pendingCount.total.toString()}
-          hint={`${pendingCount.critical} critical`}
-          link={{ href: "/portal/agents/inbox", label: "Inbox ↗" }}
-        />
-        <Tile
-          number="02"
-          label="Assets at risk"
-          value={atRisk.length.toString()}
-          hint={`${watch.length} on watch`}
-          link={{ href: "/portal/maintenance", label: "Maintenance ↗" }}
-        />
-        <Tile
-          number="03"
-          label="Healthy assets"
-          value={(assets.length - atRisk.length - watch.length).toString()}
-          hint={`${assets.length} total`}
-        />
-        <Tile
-          number="04"
-          label="Sites"
-          value={new Set(assets.map((a) => a.site_id).filter(Boolean)).size.toString()}
-        />
-      </section>
+      <Suspense fallback={<TilesFallback />}>
+        <StatTiles orgId={orgId} />
+      </Suspense>
 
       <section className="grid gap-10 lg:grid-cols-[1.3fr_1fr]">
-        <article className="space-y-5">
-          <header className="flex items-end justify-between gap-3">
-            <Eyebrow number="02">Top agent signals</Eyebrow>
-            <Link
-              href="/portal/agents/inbox"
-              className="nav-link text-[11.5px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]"
-            >
-              See all ↗
-            </Link>
-          </header>
-          {topRecs.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-hairline bg-bg-elev/20 px-6 py-12 text-center text-[14px] text-[var(--color-text-muted)]">
-              No agent recommendations right now.
-            </p>
-          ) : (
-            <div className="space-y-5">
-              {topRecs.map((rec) => (
-                <RecommendationCard key={rec.id} rec={rec} compact />
-              ))}
-            </div>
-          )}
-        </article>
-
-        <article className="space-y-5">
-          <header className="flex items-end justify-between gap-3">
-            <Eyebrow number="03">Asset spotlight</Eyebrow>
-            <Link
-              href="/portal/maintenance"
-              className="nav-link text-[11.5px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]"
-            >
-              All assets ↗
-            </Link>
-          </header>
-          {topAlerts.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-hairline bg-bg-elev/20 px-6 py-10 text-center text-[13.5px] text-[var(--color-text-muted)]">
-              Every asset is in the healthy band.
-            </p>
-          ) : (
-            <ul className="overflow-hidden rounded-2xl border border-hairline bg-bg-elev/30">
-              {topAlerts.map((a) => (
-                <li
-                  key={a.id}
-                  className="grid gap-3 border-b border-hairline px-5 py-4 last:border-b-0 sm:grid-cols-[1fr_auto]"
-                >
-                  <Link
-                    href={`/portal/maintenance/assets/${a.id}`}
-                    className="space-y-0.5"
-                  >
-                    <div className="text-text">{a.name}</div>
-                    <div className="text-[11.5px] text-[var(--color-text-muted)]">
-                      {a.site_name ?? a.kind.replace(/_/g, " ")}
-                      {a.observed_at && ` · ${formatRelative(a.observed_at)}`}
-                    </div>
-                  </Link>
-                  <HealthBandBadge band={a.health_band} score={a.health_score} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </article>
+        <Suspense fallback={<CardFallback lines={3} />}>
+          <TopAgentSignals orgId={orgId} />
+        </Suspense>
+        <Suspense fallback={<CardFallback lines={4} />}>
+          <AssetSpotlight orgId={orgId} />
+        </Suspense>
       </section>
     </div>
+  );
+}
+
+async function StatTiles({ orgId }: { orgId: string }) {
+  const [assets, pendingCount] = await Promise.all([
+    listAssetsForClient(orgId),
+    countPendingRecommendations(orgId),
+  ]);
+
+  const atRisk = assets.filter(
+    (a) => a.status === "at_risk" || a.health_band === "at_risk" || a.health_band === "critical",
+  );
+  const watch = assets.filter((a) => a.status === "watch" || a.health_band === "watch");
+
+  return (
+    <section className="grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
+      <Tile
+        number="01"
+        label="Pending approvals"
+        value={pendingCount.total.toString()}
+        hint={`${pendingCount.critical} critical`}
+        link={{ href: "/portal/agents/inbox", label: "Inbox ↗" }}
+      />
+      <Tile
+        number="02"
+        label="Assets at risk"
+        value={atRisk.length.toString()}
+        hint={`${watch.length} on watch`}
+        link={{ href: "/portal/maintenance", label: "Maintenance ↗" }}
+      />
+      <Tile
+        number="03"
+        label="Healthy assets"
+        value={(assets.length - atRisk.length - watch.length).toString()}
+        hint={`${assets.length} total`}
+      />
+      <Tile
+        number="04"
+        label="Sites"
+        value={new Set(assets.map((a) => a.site_id).filter(Boolean)).size.toString()}
+      />
+    </section>
+  );
+}
+
+async function TopAgentSignals({ orgId }: { orgId: string }) {
+  const topRecs = await listPendingRecommendations(orgId, { limit: 3 });
+
+  return (
+    <article className="space-y-5">
+      <header className="flex items-end justify-between gap-3">
+        <Eyebrow number="02">Top agent signals</Eyebrow>
+        <Link
+          href="/portal/agents/inbox"
+          className="nav-link text-[11.5px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]"
+        >
+          See all ↗
+        </Link>
+      </header>
+      {topRecs.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-hairline bg-bg-elev/20 px-6 py-12 text-center text-[14px] text-[var(--color-text-muted)]">
+          No agent recommendations right now.
+        </p>
+      ) : (
+        <div className="space-y-5">
+          {topRecs.map((rec) => (
+            <RecommendationCard key={rec.id} rec={rec} compact />
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
+async function AssetSpotlight({ orgId }: { orgId: string }) {
+  const assets = await listAssetsForClient(orgId);
+
+  const atRisk = assets.filter(
+    (a) => a.status === "at_risk" || a.health_band === "at_risk" || a.health_band === "critical",
+  );
+  const watch = assets.filter((a) => a.status === "watch" || a.health_band === "watch");
+  const topAlerts = [...atRisk, ...watch].slice(0, 4);
+
+  return (
+    <article className="space-y-5">
+      <header className="flex items-end justify-between gap-3">
+        <Eyebrow number="03">Asset spotlight</Eyebrow>
+        <Link
+          href="/portal/maintenance"
+          className="nav-link text-[11.5px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]"
+        >
+          All assets ↗
+        </Link>
+      </header>
+      {topAlerts.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-hairline bg-bg-elev/20 px-6 py-10 text-center text-[13.5px] text-[var(--color-text-muted)]">
+          Every asset is in the healthy band.
+        </p>
+      ) : (
+        <ul className="overflow-hidden rounded-2xl border border-hairline bg-bg-elev/30">
+          {topAlerts.map((a) => (
+            <li
+              key={a.id}
+              className="grid gap-3 border-b border-hairline px-5 py-4 last:border-b-0 sm:grid-cols-[1fr_auto]"
+            >
+              <Link
+                href={`/portal/maintenance/assets/${a.id}`}
+                className="space-y-0.5"
+              >
+                <div className="text-text">{a.name}</div>
+                <div className="text-[11.5px] text-[var(--color-text-muted)]">
+                  {a.site_name ?? a.kind.replace(/_/g, " ")}
+                  {a.observed_at && ` · ${formatRelative(a.observed_at)}`}
+                </div>
+              </Link>
+              <HealthBandBadge band={a.health_band} score={a.health_score} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
   );
 }
 
@@ -165,6 +199,41 @@ function Tile({
             {link.label}
           </Link>
         )}
+      </div>
+    </article>
+  );
+}
+
+function Bar({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded bg-hairline ${className}`} />;
+}
+
+function TilesFallback() {
+  return (
+    <section
+      className="grid gap-px overflow-hidden rounded-2xl border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4"
+      aria-busy="true"
+      aria-label="Loading"
+    >
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="space-y-3 bg-bg-elev/40 px-6 py-7">
+          <Bar className="h-2.5 w-28" />
+          <Bar className="h-9 w-16" />
+          <Bar className="h-2.5 w-24" />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function CardFallback({ lines }: { lines: number }) {
+  return (
+    <article className="space-y-5" aria-busy="true" aria-label="Loading">
+      <Bar className="h-3 w-36" />
+      <div className="space-y-4 rounded-2xl border border-hairline bg-bg-elev/30 p-6">
+        {Array.from({ length: lines }).map((_, i) => (
+          <Bar key={i} className="h-12 w-full" />
+        ))}
       </div>
     </article>
   );

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 
 export interface AssetWithHealth {
@@ -31,7 +33,7 @@ export interface AssetWithHealth {
  * `limit`/`offset` are optional; omitted = every asset for the org
  * (no truncation of the maintenance list).
  */
-export async function listAssetsForClient(
+export const listAssetsForClient = cache(async function listAssetsForClient(
   organizationId: string,
   opts: { limit?: number; offset?: number } = {},
 ): Promise<AssetWithHealth[]> {
@@ -42,7 +44,7 @@ export async function listAssetsForClient(
     p_offset: opts.offset ?? 0,
   });
   return (data ?? []) as unknown as AssetWithHealth[];
-}
+});
 
 export async function getAssetDetail(
   assetId: string,
