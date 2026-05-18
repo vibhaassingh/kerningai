@@ -27,7 +27,8 @@ export async function listPartnerOrgs(): Promise<PartnerOrgRow[]> {
     .select("id, name, slug, region, status, billing_email, created_at")
     .eq("type", "partner")
     .is("deleted_at", null)
-    .order("name", { ascending: true });
+    .order("name", { ascending: true })
+    .limit(200);
 
   if (error || !orgs) return [];
 

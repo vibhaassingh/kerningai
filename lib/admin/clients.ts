@@ -34,7 +34,8 @@ export async function listClients(): Promise<ClientListRow[]> {
        client_settings!inner(industry, deployment_type, modules_enabled, health_score, mrr_cents, currency, renewal_date)`,
     )
     .eq("type", "client")
-    .order("name", { ascending: true });
+    .order("name", { ascending: true })
+    .limit(200);
 
   if (error || !orgs) return [];
 
