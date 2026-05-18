@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { RecommendationCard } from "@/components/portal/RecommendationCard";
-import { hasPermissionAny } from "@/lib/auth/require";
+import { hasPermissionForOrg } from "@/lib/auth/require";
 import {
   listDecidedRecommendations,
   listPendingRecommendations,
@@ -16,7 +16,10 @@ export const dynamic = "force-dynamic";
 export default async function AgentInboxPage() {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal");
-  if (!(await hasPermissionAny("approve_agent_actions")) && !(await hasPermissionAny("view_dashboard"))) {
+  if (
+    !(await hasPermissionForOrg("approve_agent_actions", ctx.organizationId)) &&
+    !(await hasPermissionForOrg("view_dashboard", ctx.organizationId))
+  ) {
     redirect("/portal/dashboard");
   }
 

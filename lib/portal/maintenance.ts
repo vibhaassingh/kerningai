@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 
 export interface AssetWithHealth {
@@ -21,80 +23,28 @@ export interface AssetWithHealth {
   observed_at: string | null;
 }
 
-export async function listAssetsForClient(
+/**
+ * One row per asset with only its latest health observation, via the
+ * portal_assets_with_latest_health SECURITY INVOKER RPC (LEFT JOIN
+ * LATERAL on the idx_health_asset index). Replaces the previous
+ * fetch-all-assets + fetch-all-health-history + JS-fold, which scaled
+ * O(assets × history). RLS still applies as the calling user.
+ *
+ * `limit`/`offset` are optional; omitted = every asset for the org
+ * (no truncation of the maintenance list).
+ */
+export const listAssetsForClient = cache(async function listAssetsForClient(
   organizationId: string,
+  opts: { limit?: number; offset?: number } = {},
 ): Promise<AssetWithHealth[]> {
   const supabase = await createClient();
-
-  // Pull every asset + the latest health row for each.
-  const { data: assets } = await supabase
-    .from("assets")
-    .select(
-      "id, name, asset_code, kind, status, site_id, manufacturer, model, installed_at, site:sites(name)",
-    )
-    .eq("organization_id", organizationId)
-    .order("status", { ascending: true })
-    .order("name", { ascending: true });
-
-  type AssetRow = {
-    id: string;
-    name: string;
-    asset_code: string | null;
-    kind: string;
-    status: AssetWithHealth["status"];
-    site_id: string | null;
-    manufacturer: string | null;
-    model: string | null;
-    installed_at: string | null;
-    site: { name: string } | null;
-  };
-  const rows = ((assets ?? []) as unknown as AssetRow[]) ?? [];
-  if (rows.length === 0) return [];
-
-  const ids = rows.map((r) => r.id);
-  const { data: healthRows } = await supabase
-    .from("equipment_health_scores")
-    .select("asset_id, score, band, reason, forecast_event, forecast_days, observed_at")
-    .in("asset_id", ids)
-    .order("observed_at", { ascending: false });
-
-  type HealthRow = {
-    asset_id: string;
-    score: number;
-    band: string;
-    reason: string | null;
-    forecast_event: string | null;
-    forecast_days: number | null;
-    observed_at: string;
-  };
-
-  const latest = new Map<string, HealthRow>();
-  for (const h of ((healthRows ?? []) as HealthRow[])) {
-    if (!latest.has(h.asset_id)) latest.set(h.asset_id, h);
-  }
-
-  return rows.map((r) => {
-    const h = latest.get(r.id);
-    return {
-      id: r.id,
-      name: r.name,
-      asset_code: r.asset_code,
-      kind: r.kind,
-      status: r.status,
-      site_id: r.site_id,
-      site_name: r.site?.name ?? null,
-      manufacturer: r.manufacturer,
-      model: r.model,
-      installed_at: r.installed_at,
-      health_score: h?.score ?? null,
-      health_band: h?.band ?? null,
-      health_reason: h?.reason ?? null,
-      forecast_event: h?.forecast_event ?? null,
-      forecast_days: h?.forecast_days ?? null,
-      observed_at: h?.observed_at ?? null,
-    };
+  const { data } = await supabase.rpc("portal_assets_with_latest_health", {
+    p_org_id: organizationId,
+    p_limit: opts.limit ?? null,
+    p_offset: opts.offset ?? 0,
   });
-}
+  return (data ?? []) as unknown as AssetWithHealth[];
+});
 
 export async function getAssetDetail(
   assetId: string,

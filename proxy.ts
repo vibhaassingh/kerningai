@@ -3,15 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 /**
- * Root middleware: refreshes the Supabase session cookie on every
- * matching request, then gates `/admin/*` and `/portal/*` for
- * authenticated users.
+ * Root proxy (Next 16's renamed middleware convention): refreshes the
+ * Supabase session cookie on every matching request, then gates
+ * `/admin/*`, `/portal/*` and `/partner/*` for authenticated users.
  *
  * Fine-grained role + permission checks happen inside the layouts and
- * Server Actions; this middleware only handles the cheap auth-or-not
- * decision.
+ * Server Actions; this only handles the cheap auth-or-not decision.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const { response, user, supabaseConfigured } = await updateSession(request);
 

@@ -4,6 +4,7 @@ import { ProjectOverview } from "@/components/projects/ProjectOverview";
 import { ProjectPartnerAssignment } from "@/components/projects/ProjectPartnerAssignment";
 import { hasPermissionAny } from "@/lib/auth/require";
 import { listPartnerOrgOptions } from "@/lib/admin/partners";
+import { getLatestProposalForProject } from "@/lib/admin/proposals";
 import { getProject } from "@/lib/projects/projects";
 
 export const metadata = { title: "Project — Overview" };
@@ -22,6 +23,11 @@ export default async function ProjectOverviewPage({ params }: Props) {
     ? `/admin/solution-blueprints/${project.blueprint_id}`
     : null;
 
+  const latestProposal = await getLatestProposalForProject(projectId);
+  const proposalHref = latestProposal
+    ? `/admin/clients/${clientId}/projects/${projectId}/proposal/workflow`
+    : null;
+
   const canManage = await hasPermissionAny("manage_projects");
   const partnerOrgs = canManage ? await listPartnerOrgOptions() : [];
 
@@ -31,6 +37,8 @@ export default async function ProjectOverviewPage({ params }: Props) {
         project={project}
         audience="admin"
         blueprintHref={blueprintHref}
+        proposalHref={proposalHref}
+        proposalStatus={latestProposal?.status ?? null}
       />
       {canManage && (
         <ProjectPartnerAssignment

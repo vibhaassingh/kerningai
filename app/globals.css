@@ -296,3 +296,55 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Proposal print / PDF — light palette scoped to the print route only.
+ * Re-declares the design tokens so ProposalView renders dark-on-white
+ * without per-component changes. Tailwind v4 token utilities and direct
+ * var(--color-*) usages both resolve against these.
+ * ------------------------------------------------------------------------- */
+.proposal-print {
+  --color-bg: #ffffff;
+  --color-bg-elev: #ffffff;
+  --color-text: #161611;
+  --color-text-muted: #55504a;
+  --color-text-faint: #8a857c;
+  --color-text-faded: #38362f;
+  --color-signal: #9a6b16;
+  --color-signal-soft: #9a6b16;
+  --color-signal-deep: #7c5512;
+  --color-hairline: rgba(20, 18, 12, 0.18);
+  --color-hairline-strong: rgba(20, 18, 12, 0.30);
+  --color-canvas-pain: #b3261e;
+  background: #ffffff;
+  color: var(--color-text);
+}
+.proposal-print :where(section, article, li, tr) {
+  break-inside: avoid;
+}
+
+@media print {
+  /* A4 with comfortable margins; @page owns the page edges so the
+   * container padding doesn't double up and pagination stays clean. */
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+  html,
+  body {
+    background: #ffffff !important;
+  }
+  .proposal-print {
+    padding: 0 !important;
+    max-width: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Repeat table headers across page breaks; never split a row. */
+  .proposal-print thead {
+    display: table-header-group;
+  }
+  .proposal-print tr {
+    break-inside: avoid;
+  }
+}

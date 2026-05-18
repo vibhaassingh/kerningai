@@ -6,6 +6,7 @@ import {
   assertPartnerForProject,
   listPartnerProjectCanvasesFull,
 } from "@/lib/partner/partner-canvas";
+import { getLatestProposalForProject } from "@/lib/admin/proposals";
 
 export const metadata = { title: "Project" };
 export const dynamic = "force-dynamic";
@@ -28,7 +29,10 @@ export default async function PartnerProjectOverviewPage({ params }: Props) {
   const ctx = await assertPartnerForProject(projectId);
   if (!ctx) notFound();
 
-  const canvases = await listPartnerProjectCanvasesFull(projectId);
+  const [canvases, proposal] = await Promise.all([
+    listPartnerProjectCanvasesFull(projectId),
+    getLatestProposalForProject(projectId),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -84,8 +88,25 @@ export default async function PartnerProjectOverviewPage({ params }: Props) {
         )}
       </section>
 
+      {proposal && (
+        <section className="space-y-3">
+          <Eyebrow number="03">Proposal</Eyebrow>
+          <Link
+            href={`/partner/projects/${projectId}/proposal`}
+            className="flex items-center justify-between gap-4 rounded-2xl border border-hairline bg-bg-elev/40 px-5 py-4 hover:border-[var(--color-signal)]"
+          >
+            <span className="text-[14px] text-text">
+              View the proposal shared with {ctx.client_org_name}
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-signal-soft)]">
+              {proposal.status.replace("_", " ")} →
+            </span>
+          </Link>
+        </section>
+      )}
+
       <section className="space-y-3">
-        <Eyebrow number="03">Workflow canvases</Eyebrow>
+        <Eyebrow number={proposal ? "04" : "03"}>Workflow canvases</Eyebrow>
         {canvases.length === 0 ? (
           <p className="rounded-2xl border border-hairline bg-bg-elev/30 px-5 py-8 text-center text-[13px] text-[var(--color-text-muted)]">
             No workflow canvas has been built yet.

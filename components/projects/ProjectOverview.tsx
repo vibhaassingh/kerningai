@@ -8,6 +8,8 @@ interface ProjectOverviewProps {
   /** When true, hide commercial/referral details (partner audience). */
   audience?: "admin" | "client" | "partner";
   blueprintHref?: string | null;
+  proposalHref?: string | null;
+  proposalStatus?: string | null;
 }
 
 const STATUS_LABEL: Record<ProjectWithPartner["status"], string> = {
@@ -23,6 +25,8 @@ export function ProjectOverview({
   project,
   audience = "admin",
   blueprintHref,
+  proposalHref,
+  proposalStatus,
 }: ProjectOverviewProps) {
   const showPartner =
     audience !== "partner" &&
@@ -98,6 +102,25 @@ export function ProjectOverview({
           >
             View blueprint →
           </Link>
+        </section>
+      )}
+
+      {proposalHref && (
+        <section className="space-y-2">
+          <Eyebrow number="03">Linked proposal</Eyebrow>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href={proposalHref}
+              className="inline-block rounded-full border border-[var(--color-signal-deep)] px-4 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-signal-soft)] hover:border-[var(--color-signal)] hover:text-[var(--color-signal)]"
+            >
+              View proposal →
+            </Link>
+            {proposalStatus && (
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+                {proposalStatus.replace("_", " ")}
+              </span>
+            )}
+          </div>
         </section>
       )}
     </article>

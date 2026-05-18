@@ -1,6 +1,9 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
+import { getRequestProfile, getRequestUser } from "@/lib/auth/request-session";
 
 import type { RoleSlug } from "@/lib/rbac/roles";
 
@@ -19,13 +22,11 @@ export interface Membership {
  * Returns every active membership for the current authenticated user.
  * Used to populate the org switcher and to gate cross-tenant access.
  */
-export async function getUserMemberships(): Promise<Membership[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const getUserMemberships = cache(async (): Promise<Membership[]> => {
+  const user = await getRequestUser();
   if (!user) return [];
 
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("organization_memberships")
     .select(
@@ -44,7 +45,7 @@ export async function getUserMemberships(): Promise<Membership[]> {
     roleSlug: row.role_slug as RoleSlug,
     siteIds: row.site_ids ?? [],
   }));
-}
+});
 
 interface RawMembership {
   organization_id: string;
@@ -84,22 +85,13 @@ export async function getCurrentMembership(
     if (fromCookie) return fromCookie;
   }
 
-  // app_users.default_org_id fallback.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) {
-    const { data: profile } = await supabase
-      .from("app_users")
-      .select("default_org_id")
-      .eq("id", user.id)
-      .maybeSingle();
-    const def = (profile as { default_org_id: string | null } | null)?.default_org_id;
-    if (def) {
-      const fromDefault = memberships.find((m) => m.organizationId === def);
-      if (fromDefault) return fromDefault;
-    }
+  // app_users.default_org_id fallback (request-memoized profile).
+  const profile = await getRequestProfile();
+  if (profile?.default_org_id) {
+    const fromDefault = memberships.find(
+      (m) => m.organizationId === profile.default_org_id,
+    );
+    if (fromDefault) return fromDefault;
   }
 
   return memberships[0];

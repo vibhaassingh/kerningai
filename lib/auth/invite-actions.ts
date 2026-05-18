@@ -74,12 +74,13 @@ export async function inviteUser(
 
   const service = createServiceClient();
 
-  // Reject if an active member with that email already exists in this org.
+  // Reject if a member with that email already exists in this org. Service
+  // role (RLS bypassed); permission was enforced by requirePermission above.
   const { data: existingMember } = await service
-    .from("org_members_view")
-    .select("user_id")
+    .from("organization_memberships")
+    .select("user_id, app_users!inner(email)")
     .eq("organization_id", parsed.data.organizationId)
-    .ilike("email", parsed.data.email)
+    .ilike("app_users.email", parsed.data.email)
     .maybeSingle();
   if (existingMember) {
     return { ok: false, error: "That email is already a member of this organization.", field: "email" };

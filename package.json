@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "check:portal-bundle": "node scripts/check-portal-bundle-imports.mjs",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:portal-bundle && pnpm build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

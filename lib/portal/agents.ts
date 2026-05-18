@@ -88,15 +88,42 @@ function hydrate(r: Row): AgentRecommendation {
 
 export async function listPendingRecommendations(
   organizationId: string,
+  opts?: { limit?: number },
 ): Promise<AgentRecommendation[]> {
+  const limit = Math.min(Math.max(opts?.limit ?? 50, 1), 100);
   const supabase = await createClient();
   const { data } = await supabase
     .from("agent_recommendations")
     .select(RECOMMENDATION_COLUMNS)
     .eq("organization_id", organizationId)
     .eq("status", "pending")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(limit);
   return ((data ?? []) as unknown as Row[]).map(hydrate);
+}
+
+/**
+ * Cheap dashboard counts — avoids pulling every pending row just to take
+ * `.length`. Uses head:true count queries (same pattern as ontology.ts).
+ */
+export async function countPendingRecommendations(
+  organizationId: string,
+): Promise<{ total: number; critical: number }> {
+  const supabase = await createClient();
+  const [total, critical] = await Promise.all([
+    supabase
+      .from("agent_recommendations")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .eq("status", "pending"),
+    supabase
+      .from("agent_recommendations")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .eq("status", "pending")
+      .in("risk_level", ["critical_approval", "blocked"]),
+  ]);
+  return { total: total.count ?? 0, critical: critical.count ?? 0 };
 }
 
 export async function listDecidedRecommendations(

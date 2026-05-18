@@ -1,8 +1,10 @@
 import "server-only";
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/auth/request-session";
 import { getUserMemberships, type Membership } from "@/lib/tenancy/current-org";
 
 import type { PermissionSlug } from "@/lib/rbac/permissions";
@@ -26,10 +28,7 @@ export class TenantBoundaryError extends Error {
  * signed in. Use at the top of a Server Component that requires a session.
  */
 export async function requireUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) {
     redirect("/login");
   }
@@ -83,11 +82,9 @@ export async function requirePermission(
   permission: PermissionSlug,
   orgId: string,
 ): Promise<{ membership: Membership; userId: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) throw new UnauthorizedError("Not signed in");
+  const supabase = await createClient();
 
   const membership = await requireOrg(orgId);
 
@@ -109,11 +106,9 @@ export async function requirePermission(
 export async function hasPermissionAny(
   permission: PermissionSlug,
 ): Promise<boolean> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) return false;
+  const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("has_permission_any", {
     p_permission: permission,
@@ -121,3 +116,24 @@ export async function hasPermissionAny(
   if (error) return false;
   return data === true;
 }
+
+/**
+ * Org-scoped permission check — true if the user holds `permission`
+ * within the specific `orgId`. Same RPC as `requirePermission` but
+ * returns a boolean (no throw, no redirect) for page-level UI gating,
+ * and is request-memoized per (permission, orgId).
+ */
+export const hasPermissionForOrg = cache(
+  async (permission: PermissionSlug, orgId: string): Promise<boolean> => {
+    const user = await getRequestUser();
+    if (!user) return false;
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.rpc("has_permission", {
+      p_permission: permission,
+      p_org_id: orgId,
+    });
+    if (error) return false;
+    return data === true;
+  },
+);

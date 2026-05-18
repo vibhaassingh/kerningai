@@ -6,7 +6,7 @@ import { PortalBrand } from "@/components/chrome/portal/PortalBrand";
 import { SidebarNav, type SidebarSection } from "@/components/chrome/portal/SidebarNav";
 import { TopBar } from "@/components/chrome/portal/TopBar";
 import { ROLE_LABELS } from "@/lib/rbac/labels";
-import { createClient } from "@/lib/supabase/server";
+import { getRequestProfile, getRequestUser } from "@/lib/auth/request-session";
 import { getCurrentMembership, getUserMemberships } from "@/lib/tenancy/current-org";
 
 const PORTAL_NAV: SidebarSection[] = [
@@ -45,31 +45,24 @@ const PORTAL_NAV: SidebarSection[] = [
 ];
 
 export async function ClientShell({ children }: { children: ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect("/login?returnTo=/portal");
 
-  const memberships = await getUserMemberships();
+  const [memberships, profile] = await Promise.all([
+    getUserMemberships(),
+    getRequestProfile(),
+  ]);
   if (memberships.length === 0) {
     // Authenticated but no active membership — likely an in-flight invite.
     redirect("/accept-invite");
   }
+  if (!profile) notFound();
 
   // Prefer the first client org. Internal-only users land here too if they
   // navigate directly; surface a hint by showing whichever org they have.
   const fallback =
     memberships.find((m) => m.organizationType === "client") ?? memberships[0];
   const primary = (await getCurrentMembership()) ?? fallback;
-
-  const { data: profile } = await supabase
-    .from("app_users")
-    .select("full_name, email")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!profile) notFound();
 
   return (
     <div className="grid min-h-dvh grid-cols-[260px_1fr] bg-bg text-text">

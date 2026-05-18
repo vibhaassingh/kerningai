@@ -27,7 +27,8 @@ export async function listPartnerOrgs(): Promise<PartnerOrgRow[]> {
     .select("id, name, slug, region, status, billing_email, created_at")
     .eq("type", "partner")
     .is("deleted_at", null)
-    .order("name", { ascending: true });
+    .order("name", { ascending: true })
+    .limit(200);
 
   if (error || !orgs) return [];
 
@@ -203,11 +204,10 @@ export async function getPartnerOrgDetail(
 
   const [membersRes, invitesRes, projectsRes, leadsRes] = await Promise.all([
     supabase
-      .from("org_members_view")
+      .rpc("org_members_for_org", { p_org_id: partnerId })
       .select(
         "membership_id, user_id, email, full_name, role_slug, role_name, status, accepted_at, last_login_at",
       )
-      .eq("organization_id", partnerId)
       .order("status", { ascending: true }),
     supabase
       .from("invites")

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { formatDate, formatMoney, formatModule } from "@/lib/admin/format";
 import { createClient } from "@/lib/supabase/server";
-import { hasPermissionAny } from "@/lib/auth/require";
+import { hasPermissionForOrg } from "@/lib/auth/require";
 import { getPortalContext } from "@/lib/portal/team";
 
 export const metadata = { title: "Billing" };
@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 export default async function PortalBillingPage() {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal");
-  if (!(await hasPermissionAny("view_billing"))) redirect("/portal/dashboard");
+  if (!(await hasPermissionForOrg("view_billing", ctx.organizationId)))
+    redirect("/portal/dashboard");
 
   const supabase = await createClient();
   const { data: settings } = await supabase

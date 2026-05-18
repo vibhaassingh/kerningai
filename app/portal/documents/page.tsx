@@ -5,7 +5,7 @@ import { DocumentRowLink } from "@/components/portal/DocumentRowLink";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { UploadDocumentForm } from "@/components/portal/UploadDocumentForm";
 import { formatRelative } from "@/lib/admin/format";
-import { hasPermissionAny } from "@/lib/auth/require";
+import { hasPermissionForOrg } from "@/lib/auth/require";
 import { listDocuments, type DocumentRow } from "@/lib/portal/documents";
 import { getPortalContext } from "@/lib/portal/team";
 
@@ -33,7 +33,7 @@ export default async function PortalDocumentsPage() {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal");
 
-  const canUpload = await hasPermissionAny("manage_documents");
+  const canUpload = await hasPermissionForOrg("manage_documents", ctx.organizationId);
   const docs = await listDocuments(ctx.organizationId);
 
   const columns: DataTableColumn<DocumentRow>[] = [

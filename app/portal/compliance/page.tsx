@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { formatDate, formatRelative } from "@/lib/admin/format";
-import { hasPermissionAny } from "@/lib/auth/require";
+import { hasPermissionForOrg } from "@/lib/auth/require";
 import {
   getComplianceOverview,
   type AuditRunRow,
@@ -19,7 +19,8 @@ export const dynamic = "force-dynamic";
 export default async function PortalCompliancePage() {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal");
-  if (!(await hasPermissionAny("view_compliance"))) redirect("/portal/dashboard");
+  if (!(await hasPermissionForOrg("view_compliance", ctx.organizationId)))
+    redirect("/portal/dashboard");
 
   const data = await getComplianceOverview(ctx.organizationId);
 

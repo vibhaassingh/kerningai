@@ -4,7 +4,7 @@ import { DataTable, type DataTableColumn } from "@/components/data/DataTable";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { formatMoney } from "@/lib/admin/format";
 import { formatRelative } from "@/lib/admin/format";
-import { hasPermissionAny } from "@/lib/auth/require";
+import { hasPermissionForOrg } from "@/lib/auth/require";
 import {
   getEnergyOverview,
   type EnergyAnomaly,
@@ -19,7 +19,8 @@ export const dynamic = "force-dynamic";
 export default async function PortalEnergyPage() {
   const ctx = await getPortalContext();
   if (!ctx) redirect("/portal");
-  if (!(await hasPermissionAny("view_energy"))) redirect("/portal/dashboard");
+  if (!(await hasPermissionForOrg("view_energy", ctx.organizationId)))
+    redirect("/portal/dashboard");
 
   const { meters, tariffs, anomalies, totalConsumption, totalCost, currency } =
     await getEnergyOverview(ctx.organizationId);
