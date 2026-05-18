@@ -44,8 +44,14 @@ function useLiquidInteractions<T extends HTMLElement>() {
 
     const onMove = (e: MouseEvent) => {
       const rect = el.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
+      // rect already includes the applied translate (style x/y = sx/sy).
+      // Measure the pull from the element's RESTING centre by backing the
+      // transform out — otherwise the magnetic target is computed in a
+      // frame that moves with the spring, so the spring chases a target
+      // that runs away from it (the pill drifts/jitters under a still
+      // cursor, worst right after a click while the pointer rests on it).
+      const cx = rect.left + rect.width / 2 - sx.get();
+      const cy = rect.top + rect.height / 2 - sy.get();
       const dx = e.clientX - cx;
       const dy = e.clientY - cy;
       const dist = Math.hypot(dx, dy);
@@ -84,7 +90,7 @@ function useLiquidInteractions<T extends HTMLElement>() {
       window.removeEventListener("mousemove", onMove);
       el.removeEventListener("mouseleave", onLeave);
     };
-  }, [reduce, x, y]);
+  }, [reduce, x, y, sx, sy]);
 
   return { ref, sx, sy } as const;
 }
