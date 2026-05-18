@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Eyebrow } from "@/components/primitives/Eyebrow";
 import { LiquidPill } from "@/components/primitives/LiquidPill";
 import { listPublishedTemplates } from "@/lib/discovery/templates";
+import { PORTAL_SIGN_IN_URL } from "@/lib/links";
 
 export const metadata: Metadata = {
   title: "Start a discovery",
@@ -61,7 +62,7 @@ export default async function StartPage() {
       </section>
 
       <p className="text-[12.5px] text-[var(--color-text-muted)]">
-        Already a customer? <Link href="/login" className="nav-link text-text">Sign in</Link> to
+        Already a customer? <Link href={PORTAL_SIGN_IN_URL} className="nav-link text-text">Sign in</Link> to
         start a discovery from your portal — it attaches to your workspace.
       </p>
     </article>
