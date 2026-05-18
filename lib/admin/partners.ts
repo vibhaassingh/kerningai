@@ -204,11 +204,10 @@ export async function getPartnerOrgDetail(
 
   const [membersRes, invitesRes, projectsRes, leadsRes] = await Promise.all([
     supabase
-      .from("org_members_view")
+      .rpc("org_members_for_org", { p_org_id: partnerId })
       .select(
         "membership_id, user_id, email, full_name, role_slug, role_name, status, accepted_at, last_login_at",
       )
-      .eq("organization_id", partnerId)
       .order("status", { ascending: true }),
     supabase
       .from("invites")

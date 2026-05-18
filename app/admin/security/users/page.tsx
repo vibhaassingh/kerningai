@@ -50,11 +50,10 @@ export default async function AdminUsersPage() {
 
   const [{ data: members }, { data: invites }] = await Promise.all([
     supabase
-      .from("org_members_view")
+      .rpc("org_members_for_org", { p_org_id: KERNING_ORG_ID })
       .select(
         "membership_id, user_id, email, full_name, role_slug, role_name, status, accepted_at, last_login_at",
       )
-      .eq("organization_id", KERNING_ORG_ID)
       .order("status", { ascending: true })
       .order("accepted_at", { ascending: false }),
     supabase

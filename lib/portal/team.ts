@@ -53,11 +53,10 @@ export async function getPortalContext(): Promise<{
 export async function listPortalMembers(clientId: string): Promise<PortalMember[]> {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("org_members_view")
+    .rpc("org_members_for_org", { p_org_id: clientId })
     .select(
       "membership_id, user_id, email, full_name, role_slug, role_name, status, last_login_at, accepted_at",
     )
-    .eq("organization_id", clientId)
     .order("status", { ascending: true })
     .limit(200);
   return (data ?? []) as PortalMember[];
