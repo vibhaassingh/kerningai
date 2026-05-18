@@ -65,6 +65,11 @@ AS $$
     )
 $$;
 
+-- Postgres grants EXECUTE to PUBLIC by default; scope it to authenticated
+-- only (anon never needs this RPC, and the in-function guard already
+-- returns nothing without a user context — defense in depth).
+REVOKE EXECUTE ON FUNCTION public.org_members_for_org(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.org_members_for_org(uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.org_members_for_org(uuid) TO authenticated;
 
 -- Nothing in the DB depends on the view (verified); all app callers move to
