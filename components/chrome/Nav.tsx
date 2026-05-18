@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { springs } from "@/lib/motion-springs";
+import { PORTAL_SIGN_IN_URL } from "@/lib/links";
 import { PRIMARY_NAV } from "@/content/nav";
 import { Logo } from "./Logo";
 import { LiquidPill } from "@/components/primitives/LiquidPill";
@@ -91,7 +92,7 @@ export function Nav() {
           />
 
           <Link
-            href="/login"
+            href={PORTAL_SIGN_IN_URL}
             aria-label="Sign in to the workspace"
             className={cn(
               "hidden md:inline-flex items-center gap-1 rounded-full",
@@ -157,7 +158,7 @@ export function Nav() {
             ))}
             <li className="mt-1 border-t border-[var(--color-text)]/10 pt-2">
               <Link
-                href="/login"
+                href={PORTAL_SIGN_IN_URL}
                 onClick={() => setOpen(false)}
                 className="flex items-center justify-between gap-2 rounded-2xl px-4 py-3 text-[0.95rem] opacity-70 hover:bg-[var(--color-text)]/10 hover:opacity-100"
               >
