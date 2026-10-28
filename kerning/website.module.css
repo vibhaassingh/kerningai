@@ -1,0 +1,113 @@
+.previewBanner {
+  position: relative;
+  z-index: 40;
+  padding: 8rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--color-signal);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+.previewBanner aside,
+.previewUnavailable aside {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  max-width: 1360px;
+  margin-inline: auto;
+}
+.previewBanner button,
+.previewUnavailable button {
+  border: 1px solid var(--color-signal);
+  padding: 0.65rem 1rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+.previewBanner button:focus-visible,
+.previewUnavailable button:focus-visible,
+.content a:focus-visible,
+.content summary:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 4px;
+}
+.previewUnavailable {
+  max-width: 960px;
+  min-height: 65vh;
+  padding: 12rem 1.5rem 5rem;
+  margin-inline: auto;
+}
+.previewUnavailable h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 1.1;
+}
+.previewUnavailable > p {
+  padding-block: 2rem;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+.content {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding: 2rem 1.5rem 6rem;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+.content section,
+.content figure {
+  margin-block: 2rem;
+}
+.content section {
+  padding-block: 2rem;
+  border-bottom: 1px solid var(--color-border, #ffffff26);
+}
+.content h2 {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+}
+.content h3 {
+  font-size: 1.4rem;
+  margin-block: 1rem;
+}
+.content p,
+.content li,
+.content blockquote {
+  line-height: 1.7;
+  margin-bottom: 0.8rem;
+}
+.content ul {
+  padding-left: 1.4rem;
+  list-style: disc;
+}
+.content a {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+.content figcaption {
+  margin-top: 0.75rem;
+  color: var(--color-text-muted);
+}
+.content blockquote {
+  font-size: 1.25rem;
+}
+.content details {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--color-border, #ffffff26);
+}
+.content summary {
+  cursor: pointer;
+  font-size: 1.2rem;
+  margin-bottom: 0.6rem;
+}
+.content :global([data-kerning-block="services"]) > div,
+.content :global([data-kerning-block="testimonials"]) > div,
+.content :global([data-kerning-block="gallery"]) > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 2rem;
+}
+@media (min-width: 768px) {
+  .content {
+    padding-inline: 2.5rem;
+  }
+}

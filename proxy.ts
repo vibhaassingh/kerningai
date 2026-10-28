@@ -12,7 +12,21 @@ import { updateSession } from "@/lib/supabase/middleware";
  */
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  // These routes authenticate their own webhook or preview credentials and do not need the client Supabase session.
+  if (pathname.startsWith("/api/kerning/")) return NextResponse.next();
   const { response, user, supabaseConfigured } = await updateSession(request);
+  if (
+    request.cookies
+      .getAll()
+      .some(
+        (cookie) =>
+          cookie.name.startsWith("kerning-preview-") && Boolean(cookie.value),
+      )
+  ) {
+    response.headers.set("Cache-Control", "private, no-store");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    response.headers.set("Referrer-Policy", "no-referrer");
+  }
 
   const isAuthedRoute =
     pathname.startsWith("/admin") ||

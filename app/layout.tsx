@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -182,9 +183,16 @@ const websiteSchema = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Preview credentials are HttpOnly; decide tracking on the server without serializing them.
+  const privatePreview = (await cookies())
+    .getAll()
+    .some(
+      (cookie) =>
+        cookie.name.startsWith("kerning-preview-") && Boolean(cookie.value),
+    );
   return (
     <html
       lang="en"
@@ -201,9 +209,13 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
         {children}
-        <Analytics />
-        <SpeedInsights />
-        <GoogleAnalytics />
+        {!privatePreview && (
+          <>
+            <Analytics />
+            <SpeedInsights />
+            <GoogleAnalytics />
+          </>
+        )}
       </body>
     </html>
   );

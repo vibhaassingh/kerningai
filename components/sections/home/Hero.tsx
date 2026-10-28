@@ -6,7 +6,15 @@ import { MaskedReveal } from "@/components/primitives/MaskedReveal";
 import { HeroVideoBackground } from "@/components/graphics/HeroVideoBackground";
 import { HERO_VIDEO } from "@/lib/media";
 
-export function Hero() {
+export type HeroCopy = {
+  eyebrow: string;
+  headline: string;
+  description: string;
+  buttonText: string;
+  buttonLink: string;
+};
+
+export function Hero({ content }: { content?: HeroCopy }) {
   return (
     <section
       id="hero"
@@ -31,18 +39,28 @@ export function Hero() {
         >
           <span className="text-[var(--color-text)]">Kerning AI</span>
           <span className="mx-2 text-[var(--color-text-faint)]">—</span>
-          <span>Operational intelligence for Industry 5.0</span>
+          <span>
+            {content?.eyebrow ?? "Operational intelligence for Industry 5.0"}
+          </span>
         </motion.p>
 
         <h1 className="text-display text-hero-shadow mt-12 font-medium text-[clamp(3.4rem,11vw,12rem)] leading-[0.92] tracking-[-0.04em]">
-          <MaskedReveal stiffness={200} damping={22}>
-            <span>Industry 5.0,</span>
-          </MaskedReveal>
-          <MaskedReveal delay={0.08} stiffness={200} damping={22}>
-            <span className="italic text-[var(--color-signal)]">
-              on the floor.
-            </span>
-          </MaskedReveal>
+          {content ? (
+            <MaskedReveal stiffness={200} damping={22}>
+              <span>{content.headline}</span>
+            </MaskedReveal>
+          ) : (
+            <>
+              <MaskedReveal stiffness={200} damping={22}>
+                <span>Industry 5.0,</span>
+              </MaskedReveal>
+              <MaskedReveal delay={0.08} stiffness={200} damping={22}>
+                <span className="italic text-[var(--color-signal)]">
+                  on the floor.
+                </span>
+              </MaskedReveal>
+            </>
+          )}
         </h1>
 
         <div className="mt-16 grid gap-12 pb-32 md:grid-cols-12 md:items-end md:pb-44">
@@ -56,9 +74,8 @@ export function Hero() {
             }}
             className="max-w-xl text-[clamp(1.1rem,1.4vw,1.4rem)] leading-[1.45] text-[var(--color-text-muted)] md:col-span-7"
           >
-            An operational intelligence platform for industries that build with
-            their hands. An ontology-led approach to Industry 5.0, retuned for
-            the floor.
+            {content?.description ??
+              "An operational intelligence platform for industries that build with their hands. An ontology-led approach to Industry 5.0, retuned for the floor."}
           </motion.p>
 
           <motion.div
@@ -72,10 +89,10 @@ export function Hero() {
             className="flex items-center gap-10 md:col-span-5 md:justify-end"
           >
             <Link
-              href="/contact"
+              href={content?.buttonLink || "/contact"}
               className="nav-link text-[15px] tracking-[0.01em] text-[var(--color-text)]"
             >
-              Start a conversation →
+              {content?.buttonText ?? "Start a conversation"} →
             </Link>
             <Link
               href="/services"
