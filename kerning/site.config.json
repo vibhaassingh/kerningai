@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 2,
+  "siteIdEnvironment": "KERNING_SITE_ID",
+  "deliveryPath": "/api/delivery/{KERNING_SITE_ID}",
+  "status": "homepage-mapped-awaiting-production-configuration"
+}
